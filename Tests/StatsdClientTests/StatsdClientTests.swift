@@ -257,7 +257,7 @@ class StatsdClientTests: XCTestCase {
         }
 
         let queue = DispatchQueue(label: "testCouncurrency")
-        let total = Int.random(in: 300 ... 500)        
+        let total = Int.random(in: 300 ... 500)
         for _ in 0 ..< total {
             group.enter()
             queue.async {
@@ -297,7 +297,7 @@ class StatsdClientTests: XCTestCase {
         func connect() -> EventLoopFuture<Void> {
             let bootstrap = DatagramBootstrap(group: self.eventLoopGroup)
                 .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-                .channelInitializer { channel in return channel.pipeline.add(handler: Aggregator(storage: self.store)) }
+                .channelInitializer { channel in return channel.pipeline.addHandler(Aggregator(storage: self.store)) }
 
             return bootstrap.bind(host: self.host, port: self.port).map { _ in Void() }
         }
@@ -325,7 +325,7 @@ class StatsdClientTests: XCTestCase {
                 self.storage = storage
             }
 
-            func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
+            func channelRead(context: ChannelHandlerContext, data: NIOAny) {
                 let envelope = self.unwrapInboundIn(data)
                 let string = String(bytes: envelope.data.getBytes(at: envelope.data.readerIndex, length: envelope.data.readableBytes)!, encoding: .utf8)!
                 self.storage(string)

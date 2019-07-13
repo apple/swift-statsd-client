@@ -32,7 +32,7 @@ public final class StatsdClient: MetricsFactory {
     ///     - host: The `statsd` server host.
     ///     - port: The `statsd` server port.
     public init(eventLoopGroupProvider: EventLoopGroupProvider = .createNew, host: String, port: Int) throws {
-        let address = try SocketAddress.newAddressResolving(host: host, port: port)
+        let address = try SocketAddress.makeAddressResolvingHost(host, port: port)
         self.client = Client(eventLoopGroupProvider: eventLoopGroupProvider, address: address)
     }
 
@@ -271,19 +271,19 @@ private final class Client {
     }
 
     func emit(_ metric: Metric) -> EventLoopFuture<Void> {
-        return self.connect().then { channel in
+        return self.connect().flatMap { channel in
             channel.writeAndFlush(metric)
         }
     }
 
     private func connect() -> EventLoopFuture<Channel> {
         if let channel = self.channel.load().value {
-            return self.eventLoopGroup.next().newSucceededFuture(result: channel)
+            return self.eventLoopGroup.next().makeSucceededFuture(channel)
         }
 
         let bootstrap = DatagramBootstrap(group: self.eventLoopGroup)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-            .channelInitializer { channel in return channel.pipeline.add(handler: Encoder(address: self.address)) }
+            .channelInitializer { channel in return channel.pipeline.addHandler(Encoder(address: self.address)) }
 
         // the bind address is local and does not really matter, the remote address is addressed by AddressedEnvelope below
         let future = bootstrap.bind(host: "0.0.0.0", port: 0)
@@ -307,12 +307,12 @@ private final class Client {
         // gauge: <metric name>:<value>|g
         // histogram: <metric name>:<value>|h
         // meter: <metric name>:<value>|m
-        public func write(ctx: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
+        public func write(context: ChannelHandlerContext, data: NIOAny, promise: EventLoopPromise<Void>?) {
             let metric = self.unwrapOutboundIn(data)
             let string = "\(metric.name):\(metric.value)|\(metric.type.rawValue)"
-            var buffer = ctx.channel.allocator.buffer(capacity: string.utf8.count)
-            buffer.write(string: string)
-            ctx.writeAndFlush(self.wrapOutboundOut(AddressedEnvelope(remoteAddress: self.address, data: buffer)), promise: promise)
+            var buffer = context.channel.allocator.buffer(capacity: string.utf8.count)
+            buffer.writeString(string)
+            context.writeAndFlush(self.wrapOutboundOut(AddressedEnvelope(remoteAddress: self.address, data: buffer)), promise: promise)
         }
     }
 }
