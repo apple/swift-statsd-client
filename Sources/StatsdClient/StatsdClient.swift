@@ -267,6 +267,7 @@ private final class Client {
             }
         default:
             self.isShutdown.store(true)
+            callback(nil)
         }
     }
 
