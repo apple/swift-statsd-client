@@ -2,13 +2,13 @@
 
 //===----------------------------------------------------------------------===//
 //
-// This source file is part of the StatsdClient open source project
+// This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019 the StatsdClient project authors
+// Copyright (c) 2019 the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
-// See CONTRIBUTORS.txt for the list of StatsdClient project authors
+// See CONTRIBUTORS.txt for the list of SwiftStatsdClient project authors
 //
 // SPDX-License-Identifier: Apache-2.0
 //
