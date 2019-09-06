@@ -41,7 +41,7 @@ This code of conduct applies both within project spaces and in public spaces whe
 individual is representing the project or its community.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by
-contacting a project maintainer at [conduct@swiftserver.group](mailto:swift-server-conduct@group.apple.com). All complaints will be reviewed and
+contacting a project maintainer at [swift-server-conduct@group.apple.com](mailto:swift-server-conduct@group.apple.com). All complaints will be reviewed and
 investigated and will result in a response that is deemed necessary and appropriate to the
 circumstances. Maintainers are obligated to maintain confidentiality with regard to the reporter
 of an incident.
@@ -49,7 +49,7 @@ of an incident.
 *This policy is adapted from the Contributor Code of Conduct [version 1.3.0](https://contributor-covenant.org/version/1/3/0/).*
 
 ### Reporting
-A working group of community members is committed to promptly addressing any [reported issues](mailto:conduct@swiftserver.group).
+A working group of community members is committed to promptly addressing any [reported issues](mailto:swift-server-conduct@group.apple.com).
 Working group members are volunteers appointed by the project lead, with a
 preference for individuals with varied backgrounds and perspectives. Membership is expected
 to change regularly, and may grow or shrink.
