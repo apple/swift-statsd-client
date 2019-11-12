@@ -104,9 +104,9 @@ class StatsdClientTests: XCTestCase {
         try! server.shutdown()
     }
 
-    func testTimer() {
+    func testTimerNanoseconds() {
         let id = NSUUID().uuidString
-        let value = Int64.random(in: 1000 ... 1_000_000)
+        let value = 1_234_567
 
         let server = TestServer(host: host, port: port)
         try! server.connect().wait()
@@ -115,11 +115,92 @@ class StatsdClientTests: XCTestCase {
         group.enter()
         server.onData { data in
             defer { group.leave() }
-            XCTAssertEqual(data, "\(id):\(value / 1000)|ms", "expected entries to match")
+            XCTAssertEqual(data, "\(id):1.234567|ms", "expected entries to match")
         }
 
         let timer = Timer(label: id)
         timer.recordNanoseconds(value)
+
+        switch group.wait(timeout: DispatchTime.now() + .seconds(1)) {
+        case .timedOut:
+            XCTFail("timeout")
+        case .success:
+            break
+        }
+
+        try! server.shutdown()
+    }
+
+    func testTimerMicroseconds() {
+        let id = NSUUID().uuidString
+        let value = 1_234
+
+        let server = TestServer(host: host, port: port)
+        try! server.connect().wait()
+
+        let group = DispatchGroup()
+        group.enter()
+        server.onData { data in
+            defer { group.leave() }
+            XCTAssertEqual(data, "\(id):1.234|ms", "expected entries to match")
+        }
+
+        let timer = Timer(label: id)
+        timer.recordMicroseconds(value)
+
+        switch group.wait(timeout: DispatchTime.now() + .seconds(1)) {
+        case .timedOut:
+            XCTFail("timeout")
+        case .success:
+            break
+        }
+
+        try! server.shutdown()
+    }
+
+    func testTimerMilliseconds() {
+        let id = NSUUID().uuidString
+        let value = 1.234
+
+        let server = TestServer(host: host, port: port)
+        try! server.connect().wait()
+
+        let group = DispatchGroup()
+        group.enter()
+        server.onData { data in
+            defer { group.leave() }
+            XCTAssertEqual(data, "\(id):1.234|ms", "expected entries to match")
+        }
+
+        let timer = Timer(label: id)
+        timer.recordMilliseconds(value)
+
+        switch group.wait(timeout: DispatchTime.now() + .seconds(1)) {
+        case .timedOut:
+            XCTFail("timeout")
+        case .success:
+            break
+        }
+
+        try! server.shutdown()
+    }
+
+    func testTimerSeconds() {
+        let id = NSUUID().uuidString
+        let value = 1.234
+
+        let server = TestServer(host: host, port: port)
+        try! server.connect().wait()
+
+        let group = DispatchGroup()
+        group.enter()
+        server.onData { data in
+            defer { group.leave() }
+            XCTAssertEqual(data, "\(id):1234|ms", "expected entries to match")
+        }
+
+        let timer = Timer(label: id)
+        timer.recordSeconds(value)
 
         switch group.wait(timeout: DispatchTime.now() + .seconds(1)) {
         case .timedOut:

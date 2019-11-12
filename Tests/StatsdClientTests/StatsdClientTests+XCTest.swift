@@ -27,7 +27,10 @@ extension StatsdClientTests {
         return [
             ("testCounter", testCounter),
             ("testCounterOverflow", testCounterOverflow),
-            ("testTimer", testTimer),
+            ("testTimerNanoseconds", testTimerNanoseconds),
+            ("testTimerMicroseconds", testTimerMicroseconds),
+            ("testTimerMilliseconds", testTimerMilliseconds),
+            ("testTimerSeconds", testTimerSeconds),
             ("testGaugeInteger", testGaugeInteger),
             ("testGaugeDouble", testGaugeDouble),
             ("testRecorderInteger", testRecorderInteger),
