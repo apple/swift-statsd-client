@@ -133,7 +133,7 @@ class StatsdClientTests: XCTestCase {
 
     func testTimerMicroseconds() {
         let id = NSUUID().uuidString
-        let value = 1_234
+        let value = 1234
 
         let server = TestServer(host: host, port: port)
         try! server.connect().wait()
