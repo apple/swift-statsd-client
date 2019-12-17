@@ -243,7 +243,7 @@ private final class Client {
 
     private let address: SocketAddress
 
-    let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
+    private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
 
     init(eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider, address: SocketAddress) {
         self.eventLoopGroupProvider = eventLoopGroupProvider
