@@ -23,9 +23,9 @@ import XCTest
 ///
 
 #if os(Linux) || os(FreeBSD)
-    @testable import StatsdClientTests
+@testable import StatsdClientTests
 
-    XCTMain([
-        testCase(StatsdClientTests.allTests),
-    ])
+XCTMain([
+    testCase(StatsdClientTests.allTests),
+])
 #endif
