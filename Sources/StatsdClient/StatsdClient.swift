@@ -124,7 +124,7 @@ public final class StatsdClient: MetricsFactory {
 private final class StatsdCounter: CounterHandler, Equatable {
     let id: String
     let client: Client
-    var value = Atomic<Int64>(value: 0)
+    var value = NIOAtomic<Int64>.makeAtomic(value: 0)
 
     init(label: String, dimensions: [(String, String)], client: Client) {
         self.id = StatsdUtils.id(label: label, dimensions: dimensions)
@@ -240,9 +240,10 @@ private final class StatsdTimer: TimerHandler, Equatable {
 private final class Client {
     private let eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider
     private let eventLoopGroup: EventLoopGroup
-    private let isShutdown = Atomic<Bool>(value: false)
+
     private let address: SocketAddress
-    private var channel: AtomicBox<Box<Channel?>> = AtomicBox(value: Box(nil))
+
+    private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
 
     init(eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider, address: SocketAddress) {
         self.eventLoopGroupProvider = eventLoopGroupProvider
@@ -256,7 +257,7 @@ private final class Client {
     }
 
     deinit {
-        assert(self.isShutdown.load(), "client not stopped before the deinit.")
+        precondition(self.isShutdown.load(), "client not stopped before the deinit.")
     }
 
     func shutdown(_ callback: @escaping (Error?) -> Void) {
@@ -265,7 +266,7 @@ private final class Client {
             if self.isShutdown.compareAndExchange(expected: false, desired: true) {
                 self.eventLoopGroup.shutdownGracefully(callback)
             }
-        default:
+        case .shared:
             self.isShutdown.store(true)
             callback(nil)
         }
@@ -278,20 +279,11 @@ private final class Client {
     }
 
     private func connect() -> EventLoopFuture<Channel> {
-        if let channel = self.channel.load().value {
-            return self.eventLoopGroup.next().makeSucceededFuture(channel)
-        }
-
         let bootstrap = DatagramBootstrap(group: self.eventLoopGroup)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in channel.pipeline.addHandler(Encoder(address: self.address)) }
-
         // the bind address is local and does not really matter, the remote address is addressed by AddressedEnvelope below
-        let future = bootstrap.bind(host: "0.0.0.0", port: 0)
-        future.whenSuccess { channel in
-            self.channel.store(Box(channel))
-        }
-        return future
+        return bootstrap.bind(host: "0.0.0.0", port: 0)
     }
 
     private final class Encoder: ChannelOutboundHandler {
