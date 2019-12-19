@@ -27,7 +27,10 @@ extension StatsdClientTests {
         ("testGaugeInteger", testGaugeInteger),
         ("testRecorderDouble", testRecorderDouble),
         ("testRecorderInteger", testRecorderInteger),
-        ("testTimer", testTimer),
+        ("testTimerMicroseconds", testTimerMicroseconds),
+        ("testTimerMilliseconds", testTimerMilliseconds),
+        ("testTimerNanoseconds", testTimerNanoseconds),
+        ("testTimerSeconds", testTimerSeconds),
     ]
 }
 

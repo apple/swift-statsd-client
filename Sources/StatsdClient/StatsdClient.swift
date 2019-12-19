@@ -226,7 +226,7 @@ private final class StatsdTimer: TimerHandler, Equatable {
         // https://github.com/b/statsd_spec#timers
         // A timer is a measure of the number of milliseconds elapsed between a start and end time, for example the time to complete rendering of a web page for a user.
         // Valid timer values are in the range [0, 2^64^).
-        let value = Swift.max(0, duration / 1000)
+        let value = Swift.max(0.0, Double(duration) / 1_000_000.0)
         _ = self.client.emit(Metric(name: self.id, value: value, type: .timer))
     }
 
