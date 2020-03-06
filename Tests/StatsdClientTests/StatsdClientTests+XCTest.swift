@@ -36,6 +36,7 @@ extension StatsdClientTests {
             ("testRecorderInteger", testRecorderInteger),
             ("testRecorderDouble", testRecorderDouble),
             ("testCouncurrency", testCouncurrency),
+            ("testNumberOfConnections", testNumberOfConnections),
         ]
     }
 }

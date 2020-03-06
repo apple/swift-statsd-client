@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import CoreMetrics
+import Dispatch
 import NIO
 import NIOConcurrencyHelpers
 
@@ -245,6 +246,14 @@ private final class Client {
 
     private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
 
+    private var state = State.disconnected
+    private let stateSemaphore = DispatchSemaphore(value: 1)
+
+    private enum State {
+        case disconnected
+        case connected(Channel)
+    }
+
     init(eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider, address: SocketAddress) {
         self.eventLoopGroupProvider = eventLoopGroupProvider
         switch self.eventLoopGroupProvider {
@@ -273,8 +282,22 @@ private final class Client {
     }
 
     func emit(_ metric: Metric) -> EventLoopFuture<Void> {
-        return self.connect().flatMap { channel in
-            channel.writeAndFlush(metric)
+        self.stateSemaphore.wait()
+        switch self.state {
+        case .disconnected:
+            return self.connect().flatMap { channel in
+                self.state = .connected(channel)
+                self.stateSemaphore.signal()
+                return self.emit(metric)
+            }
+        case .connected(let channel):
+            guard channel.isActive else {
+                self.state = .disconnected
+                self.stateSemaphore.signal()
+                return self.emit(metric)
+            }
+            self.stateSemaphore.signal()
+            return channel.writeAndFlush(metric)
         }
     }
 
