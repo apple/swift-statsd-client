@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 import CoreMetrics
+import Dispatch
 import NIO
 import NIOConcurrencyHelpers
 
@@ -245,6 +246,15 @@ private final class Client {
 
     private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
 
+    private var state = State.disconnected
+    private let lock = Lock()
+
+    private enum State {
+        case disconnected
+        case connecting(EventLoopFuture<Void>)
+        case connected(Channel)
+    }
+
     init(eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider, address: SocketAddress) {
         self.eventLoopGroupProvider = eventLoopGroupProvider
         switch self.eventLoopGroupProvider {
@@ -273,8 +283,37 @@ private final class Client {
     }
 
     func emit(_ metric: Metric) -> EventLoopFuture<Void> {
-        return self.connect().flatMap { channel in
-            channel.writeAndFlush(metric)
+        self.lock.lock()
+        switch self.state {
+        case .disconnected:
+            let promise = self.eventLoopGroup.next().makePromise(of: Void.self)
+            self.state = .connecting(promise.futureResult)
+            self.lock.unlock()
+            self.connect().flatMap { channel -> EventLoopFuture<Void> in
+                self.lock.withLock {
+                    guard case .connecting = self.state else {
+                        preconditionFailure("invalid state \(self.state)")
+                    }
+                    self.state = .connected(channel)
+                }
+                return self.emit(metric)
+            }.cascade(to: promise)
+            return promise.futureResult
+        case .connecting(let future):
+            let future = future.flatMap {
+                self.emit(metric)
+            }
+            self.state = .connecting(future)
+            self.lock.unlock()
+            return future
+        case .connected(let channel):
+            guard channel.isActive else {
+                self.state = .disconnected
+                self.lock.unlock()
+                return self.emit(metric)
+            }
+            self.lock.unlock()
+            return channel.writeAndFlush(metric)
         }
     }
 
