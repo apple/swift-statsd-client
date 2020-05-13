@@ -1,4 +1,4 @@
-# swift-statsd-client
+# SwiftStatsDClient
 
 a metrics backend for [swift-metrics](https://github.com/apple/swift-metrics) that uses the [statsd](https://github.com/b/statsd_spec) protocol, and can be used to integrate applications with observability solutions that support `statsd` including:
 * [aws](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-custom-metrics-statsd.html)
