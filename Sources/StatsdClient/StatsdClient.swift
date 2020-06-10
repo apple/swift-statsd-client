@@ -367,12 +367,12 @@ private final class Client {
 ///
 /// By default `StatsdClient` uses the `StatsdLabelSanitizer`.
 public protocol LabelSanitizer {
-    /// Sanitize the passed in label to a Prometheus accepted value.
+    /// Sanitize the passed in label to a statsd accepted value.
     ///
     /// - parameters:
     ///     - label: The created label that needs to be sanitized.
     ///
-    /// - returns: A sanitized string that a Prometheus backend will accept.
+    /// - returns: A sanitized string that a statsd backend will accept.
     func sanitize(_ label: String) -> String
 }
 
