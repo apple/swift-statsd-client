@@ -82,7 +82,7 @@ public final class StatsdClient: MetricsFactory {
     }
 
     private func make<Item>(label: String, dimensions: [(String, String)], registry: inout [String: Item], maker: (String, [(String, String)]) -> Item) -> Item {
-        let id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.labelSanitizer)
+        let id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: self.client.labelSanitizer)
         if let item = registry[id] {
             return item
         }
