@@ -246,6 +246,27 @@ class StatsdClientTests: XCTestCase {
         assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
     }
 
+    func testLabelSanitizer() {
+        let server = TestServer(host: host, port: port)
+        XCTAssertNoThrow(try server.connect().wait())
+        defer { XCTAssertNoThrow(try server.shutdown()) }
+
+        let illegalID = "hello/:who"
+        let sanitizedID = "hello/_who"
+        let value = Double.random(in: 0 ... 1000)
+
+        let semaphore = DispatchSemaphore(value: 0)
+        server.onData { _, data in
+            defer { semaphore.signal() }
+            XCTAssertEqual(data, "\(sanitizedID):\(value)|h", "expected entries to match")
+        }
+
+        let recorder = Recorder(label: illegalID)
+        recorder.record(value)
+
+        assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
+    }
+
     func testCouncurrency() {
         let server = TestServer(host: host, port: port)
         XCTAssertNoThrow(try server.connect().wait())

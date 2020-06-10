@@ -32,9 +32,14 @@ public final class StatsdClient: MetricsFactory {
     ///     - eventLoopGroupProvider: The `EventLoopGroupProvider` to use, uses`createNew` strategy by default.
     ///     - host: The `statsd` server host.
     ///     - port: The `statsd` server port.
-    public init(eventLoopGroupProvider: EventLoopGroupProvider = .createNew, host: String, port: Int) throws {
+    public init(
+        eventLoopGroupProvider: EventLoopGroupProvider = .createNew,
+        host: String,
+        port: Int,
+        labelSanitizer: LabelSanitizer = DefaultStatsdLabelSanitizer()
+    ) throws {
         let address = try SocketAddress.makeAddressResolvingHost(host, port: port)
-        self.client = Client(eventLoopGroupProvider: eventLoopGroupProvider, address: address)
+        self.client = Client(eventLoopGroupProvider: eventLoopGroupProvider, address: address, labelSanitizer: labelSanitizer)
     }
 
     /// Shutdown the client. This is a noop when using a `shared` `EventLoopGroupProvider` strategy.
@@ -77,7 +82,7 @@ public final class StatsdClient: MetricsFactory {
     }
 
     private func make<Item>(label: String, dimensions: [(String, String)], registry: inout [String: Item], maker: (String, [(String, String)]) -> Item) -> Item {
-        let id = StatsdUtils.id(label: label, dimensions: dimensions)
+        let id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.labelSanitizer)
         if let item = registry[id] {
             return item
         }
@@ -128,7 +133,7 @@ private final class StatsdCounter: CounterHandler, Equatable {
     var value = NIOAtomic<Int64>.makeAtomic(value: 0)
 
     init(label: String, dimensions: [(String, String)], client: Client) {
-        self.id = StatsdUtils.id(label: label, dimensions: dimensions)
+        self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.labelSanitizer)
         self.client = client
     }
 
@@ -174,7 +179,7 @@ private final class StatsdRecorder: RecorderHandler, Equatable {
     let client: Client
 
     init(label: String, dimensions: [(String, String)], aggregate: Bool, client: Client) {
-        self.id = StatsdUtils.id(label: label, dimensions: dimensions)
+        self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.labelSanitizer)
         self.aggregate = aggregate
         self.client = client
     }
@@ -219,7 +224,7 @@ private final class StatsdTimer: TimerHandler, Equatable {
     let client: Client
 
     init(label: String, dimensions: [(String, String)], client: Client) {
-        self.id = StatsdUtils.id(label: label, dimensions: dimensions)
+        self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.labelSanitizer)
         self.client = client
     }
 
@@ -242,6 +247,8 @@ private final class Client {
     private let eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider
     private let eventLoopGroup: EventLoopGroup
 
+    internal let labelSanitizer: LabelSanitizer
+
     private let address: SocketAddress
 
     private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
@@ -255,7 +262,11 @@ private final class Client {
         case connected(Channel)
     }
 
-    init(eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider, address: SocketAddress) {
+    init(
+        eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider,
+        address: SocketAddress,
+        labelSanitizer: LabelSanitizer
+    ) {
         self.eventLoopGroupProvider = eventLoopGroupProvider
         switch self.eventLoopGroupProvider {
         case .shared(let group):
@@ -263,6 +274,7 @@ private final class Client {
         case .createNew:
             self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         }
+        self.labelSanitizer = labelSanitizer
         self.address = address
     }
 
@@ -349,11 +361,61 @@ private final class Client {
     }
 }
 
+// MARK: - Label Sanitizer
+
+/// Used to sanitize labels (and dimensions) into a format compatible with statsd's wire format.
+///
+/// By default `StatsdClient` uses the `StatsdLabelSanitizer`.
+public protocol LabelSanitizer {
+    /// Sanitize the passed in label to a Prometheus accepted value.
+    ///
+    /// - parameters:
+    ///     - label: The created label that needs to be sanitized.
+    ///
+    /// - returns: A sanitized string that a Prometheus backend will accept.
+    func sanitize(_ label: String) -> String
+}
+
+/// Default implementation of `LabelSanitizer` that sanitizes any ":" occurrences by replacing them with a replacement character.
+/// Defaults to replacing the illegal characters with "_", e.g. "offending:example" becomes "offending_example".
+///
+/// See `https://github.com/b/statsd_spec` for more info.
+public struct DefaultStatsdLabelSanitizer: LabelSanitizer {
+    let illegalCharacter: Character = ":"
+    let replacementCharacter: Character?
+
+    public init() {
+        self.init(replacementCharacter: "_")
+    }
+
+    /// -parameters:
+    ///     - replacementCharacter: the character to be used as replacement for the illegal ":" character; `nil` means dropping the character without replacement.
+    public init(replacementCharacter: Character?) {
+        self.replacementCharacter = replacementCharacter
+    }
+
+    public func sanitize(_ label: String) -> String {
+        guard label.contains(self.illegalCharacter) else {
+            return label
+        }
+
+        // replacingOccurrences would be used, but is in Foundation which we try to not depend on here
+        return String(label.compactMap { (c: Character) -> Character? in
+            c != self.illegalCharacter ? c : self.replacementCharacter
+        })
+    }
+}
+
 // MARK: - Utility
 
 private enum StatsdUtils {
-    static func id(label: String, dimensions: [(String, String)]) -> String {
-        return dimensions.isEmpty ? label : dimensions.reduce(label) { a, b in "\(a).\(b.0).\(b.1)" }
+    static func id(label: String, dimensions: [(String, String)], sanitizer: LabelSanitizer) -> String {
+        if dimensions.isEmpty {
+            return sanitizer.sanitize(label)
+        } else {
+            let labelWithDimensions = dimensions.reduce(label) { a, b in "\(a).\(b.0).\(b.1)" }
+            return sanitizer.sanitize(labelWithDimensions)
+        }
     }
 }
 
