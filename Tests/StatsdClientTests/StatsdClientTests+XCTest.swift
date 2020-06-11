@@ -35,6 +35,7 @@ extension StatsdClientTests {
             ("testGaugeDouble", testGaugeDouble),
             ("testRecorderInteger", testRecorderInteger),
             ("testRecorderDouble", testRecorderDouble),
+            ("testLabelSanitizer", testLabelSanitizer),
             ("testCouncurrency", testCouncurrency),
             ("testNumberOfConnections", testNumberOfConnections),
         ]
