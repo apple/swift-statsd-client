@@ -26,6 +26,9 @@ remeber to also shutdown the client before you application terminates:
 statsdClient.shutdown()
 ```
 
+## security
+
+Please see [SECURITY.md](SECURITY.md) for details on the security process.
 
 ## architecture
 
