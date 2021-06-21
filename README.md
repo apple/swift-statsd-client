@@ -9,7 +9,7 @@ a metrics backend for [swift-metrics](https://github.com/apple/swift-metrics) th
 * [graphite](https://graphiteapp.org)
 * many others
 
-## Getting started
+## getting started
 
 create an instance of the `StatsdClient` and boostrap the `MertricsSystem`  in your application's main:
 
@@ -27,7 +27,7 @@ statsdClient.shutdown()
 ```
 
 
-## Architecture
+## architecture
 
 the statsd client uses [swift-nio](https://github.com/apple/swift-nio) to establish a UDP connection to the statsd server
 
@@ -36,8 +36,3 @@ metrics types are mapped as follwoing:
 * Gauge -> Gauge
 * Recorder -> Histogram
 * Timer -> Timer
-
-
- ## Security
-
- Please see [SECURITY.md](SECURITY.md) for details on the security process.
