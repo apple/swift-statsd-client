@@ -11,7 +11,7 @@ a metrics backend for [swift-metrics](https://github.com/apple/swift-metrics) th
 
 ## Getting started
 
-create an instance of the `StatsdClient` and boostrap the `MertricsSystem`  in your application's main:
+create an instance of the `StatsdClient` and boostrap the `MetricsSystem` in your application's main:
 
 ```swift
 let statsdClient = try StatsdClient(host: host, port: port)
