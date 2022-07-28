@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019 the SwiftStatsdClient project authors
+// Copyright (c) 2019-2022 the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -26,12 +26,12 @@ public final class StatsdClient: MetricsFactory {
     private var timers = [String: TimerHandler]() // protected by a lock
     private let lock = Lock()
 
-    /// Create a new instance of `StatsdClient`
+    /// Create a new instance of `StatsdClient`.
     ///
-    /// - parameters:
-    ///     - eventLoopGroupProvider: The `EventLoopGroupProvider` to use, uses`createNew` strategy by default.
-    ///     - host: The `statsd` server host.
-    ///     - port: The `statsd` server port.
+    /// - Parameters:
+    ///   - eventLoopGroupProvider: The ``EventLoopGroupProvider`` to use, uses ``EventLoopGroupProvider/createNew`` strategy by default.
+    ///   - host: The `statsd` server host.
+    ///   - port: The `statsd` server port.
     public init(
         eventLoopGroupProvider: EventLoopGroupProvider = .createNew,
         host: String,
@@ -42,12 +42,12 @@ public final class StatsdClient: MetricsFactory {
         self.client = Client(eventLoopGroupProvider: eventLoopGroupProvider, address: address, metricNameSanitizer: metricNameSanitizer)
     }
 
-    /// Shutdown the client. This is a noop when using a `shared` `EventLoopGroupProvider` strategy.
+    /// Shutdown the client. This is a noop when using the ``EventLoopGroupProvider/shared(_:)`` strategy.
     ///
-    /// - Note: It is required to call `shutdown` before terminating the program. `StatsdClient` client will assert it was cleanly shut down as part of it destructor.
+    /// - Note: It is required to call this method before terminating the program. `StatsdClient` will assert it was cleanly shut down as part of its destructor.
     ///
-    /// - parameters:
-    ///     - callback: A caalback for when shutdown is complete
+    /// - Parameters:
+    ///   - callback: A callback for when shutdown is complete.
     public func shutdown(_ callback: @escaping (Error?) -> Void) {
         self.client.shutdown(callback)
     }

@@ -1,6 +1,10 @@
-# SwiftStatsDClient
+# ``StatsdClient``
 
-a metrics backend for [swift-metrics](https://github.com/apple/swift-metrics) that uses the [statsd](https://github.com/b/statsd_spec) protocol, and can be used to integrate applications with observability solutions that support `statsd` including:
+A metrics backend implementation using the StatsD protocol.
+
+## Overview
+
+StatsdClient is a metrics backend for [SwiftMetrics](https://github.com/apple/swift-metrics) that uses the [StatsD](https://github.com/b/statsd_spec) protocol, and can be used to integrate applications with observability solutions that support StatsD including:
 * [AWS](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Agent-custom-metrics-statsd.html)
 * [Azure](https://docs.microsoft.com/en-us/azure/azure-monitor/platform/data-platform)
 * [Google Cloud](https://cloud.google.com/monitoring/agent/plugins/statsd)
@@ -11,7 +15,7 @@ a metrics backend for [swift-metrics](https://github.com/apple/swift-metrics) th
 
 ## Getting started
 
-Create an instance of the `StatsdClient` and boostrap the `MetricsSystem` in your application's `main`:
+Create an instance of the ``StatsdClient/StatsdClient`` and boostrap the `MetricsSystem` in your application's `main`:
 
 ```swift
 let statsdClient = try StatsdClient(host: host, port: port)
@@ -28,18 +32,18 @@ statsdClient.shutdown()
 
 ## Architecture
 
-`StatsdClient` uses [SwiftNIO](https://github.com/apple/swift-nio) to establish a UDP connection to the `statsd` server.
+``StatsdClient/StatsdClient`` uses [SwiftNIO](https://github.com/apple/swift-nio) to establish a UDP connection to the `statsd` server.
 
 Metrics types are mapped as following:
 * Counter -> Counter
 * Gauge -> Gauge
 * Recorder -> Histogram
 * Timer -> Timer
+                                              
+## Topics
+                                              
+### Metrics API
 
-## Security
-
-Please see [SECURITY.md](SECURITY.md) for details on the security process.
-
-## Getting involved
-
-Do not hesitate to get in touch as well, over on https://forums.swift.org/c/server
+- ``StatsdClient/makeCounter(label:dimensions:)``
+- ``StatsdClient/makeRecorder(label:dimensions:aggregate:)``
+- ``StatsdClient/makeTimer(label:dimensions:)``
