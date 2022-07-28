@@ -28,4 +28,4 @@ services:
 
   test:
     <<: *common
-    command: /bin/bash -cl "swift test"
+    command: /bin/bash -cl "swift test $${FORCE_TEST_DISCOVERY-}"

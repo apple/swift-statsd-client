@@ -11,3 +11,5 @@ services:
 
   test:
     image: swift-statsd-client:20.04-5.6
+    environment:
+      - FORCE_TEST_DISCOVERY=--enable-test-discovery
