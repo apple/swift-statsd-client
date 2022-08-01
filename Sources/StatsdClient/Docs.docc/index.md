@@ -41,6 +41,11 @@ Metrics types are mapped as following:
 * Timer -> Timer
                                               
 ## Topics
+
+### Client API
+
+- ``StatsdClient/init(eventLoopGroupProvider:host:port:metricNameSanitizer:)``
+- ``StatsdClient/shutdown(_:)``
                                               
 ### Metrics API
 
