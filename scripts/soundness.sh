@@ -3,7 +3,7 @@
 ##
 ## This source file is part of the SwiftStatsdClient open source project
 ##
-## Copyright (c) 2019 the SwiftStatsdClient project authors
+## Copyright (c) 2019-2022 the SwiftStatsdClient project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
@@ -14,7 +14,13 @@
 ##===----------------------------------------------------------------------===##
 
 set -eu
+
 here="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+function replace_acceptable_years() {
+    # this needs to replace all acceptable forms with 'YEARS'
+    sed -e 's/20[12][901]-202[012]/YEARS/' -e 's/2019/YEARS/' -e 's/202[012]/YEARS/'
+}
 
 printf "=> Checking for unacceptable language... "
 # This greps for unacceptable terminology. The square bracket[s] are so that
@@ -67,14 +73,14 @@ for language in swift-or-c bash dtrace; do
   matching_files=( -name '*' )
   case "$language" in
       swift-or-c)
-        exceptions=( -name c_nio_http_parser.c -o -name c_nio_http_parser.h -o -name cpp_magic.h -o -name Package.swift -o -name CNIOSHA1.h -o -name c_nio_sha1.c -o -name ifaddrs-android.c -o -name ifaddrs-android.h)
+        exceptions=( -name Package.swift -o -name Package@*.swift)
         matching_files=( -name '*.swift' -o -name '*.c' -o -name '*.h' )
         cat > "$tmp" <<"EOF"
 //===----------------------------------------------------------------------===//
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019 the SwiftStatsdClient project authors
+// Copyright (c) YEARS the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -93,7 +99,7 @@ EOF
 ##
 ## This source file is part of the SwiftStatsdClient open source project
 ##
-## Copyright (c) 2019 the SwiftStatsdClient project authors
+## Copyright (c) YEARS the SwiftStatsdClient project authors
 ## Licensed under Apache License v2.0
 ##
 ## See LICENSE.txt for license information
@@ -112,7 +118,7 @@ EOF
  *
  *  This source file is part of the SwiftStatsdClient open source project
  *
- *  Copyright (c) 2019 the SwiftStatsdClient project authors
+ *  Copyright (c) YEARS the SwiftStatsdClient project authors
  *  Licensed under Apache License v2.0
  *
  *  See LICENSE.txt for license information
@@ -137,7 +143,7 @@ EOF
       \( \! -path './.build/*' -a \
       \( "${matching_files[@]}" \) -a \
       \( \! \( "${exceptions[@]}" \) \) \) | while read line; do
-      if [[ "$(cat "$line" | head -n $expected_lines | shasum)" != "$expected_sha" ]]; then
+      if [[ "$(cat "$line" | replace_acceptable_years | head -n $expected_lines | shasum)" != "$expected_sha" ]]; then
         printf "\033[0;31mmissing headers in file '$line'!\033[0m\n"
         diff -u <(cat "$line" | head -n $expected_lines) "$tmp"
         exit 1
