@@ -334,7 +334,7 @@ private final class Client {
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in channel.pipeline.addHandler(Encoder(address: self.address)) }
         // the bind address is local and does not really matter, the remote address is addressed by AddressedEnvelope below
-        return bootstrap.bind(host: "0.0.0.0", port: 0)
+        return bootstrap.bind(host: self.address.protocol == .inet6 ? "::" : "0.0.0.0", port: 0)
     }
 
     private final class Encoder: ChannelOutboundHandler {
