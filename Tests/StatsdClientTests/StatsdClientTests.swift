@@ -12,9 +12,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-import CoreMetrics
+@testable import CoreMetrics
 import NIO
 import NIOConcurrencyHelpers
+import class NIOConcurrencyHelpers.Lock
 @testable import StatsdClient
 import XCTest
 
@@ -27,7 +28,7 @@ class StatsdClientTests: XCTestCase {
         super.setUp()
 
         statsdClient = try! StatsdClient(host: host, port: port)
-        MetricsSystem.bootstrap(statsdClient)
+        MetricsSystem.bootstrapInternal(statsdClient)
     }
 
     override class func tearDown() {

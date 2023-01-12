@@ -13,12 +13,35 @@
 //===----------------------------------------------------------------------===//
 
 import XCTest
-import CoreMetrics
+@testable import CoreMetrics
 @testable import StatsdClient
 
+private let host = "::1"
 private let port = 9999
+private var statsdClient: StatsdClient!
 
 class StatsdClientIPV6Tests: XCTestCase {
+
+    override class func setUp() {
+        super.setUp()
+
+        statsdClient = try! StatsdClient(host: host, port: port)
+        MetricsSystem.bootstrapInternal(statsdClient)
+    }
+    
+    override class func tearDown() {
+        super.tearDown()
+
+        let semaphore = DispatchSemaphore(value: 0)
+        statsdClient.shutdown { error in
+            defer { semaphore.signal() }
+            if let error = error {
+                XCTFail("unexpected error shutting down \(error)")
+            }
+        }
+
+        assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
+    }
 
     func testIPV6Address() throws {
         let server = TestServer(host: "::1", port: port)
@@ -29,9 +52,6 @@ class StatsdClientIPV6Tests: XCTestCase {
         server.onData { _, _ in
             semaphore.signal()
         }
-        
-        let client = try StatsdClient(host: "::1", port: port)
-        MetricsSystem.bootstrap(client)
         
         let counter = Counter(label: UUID().uuidString)
         counter.increment(by: 12)
