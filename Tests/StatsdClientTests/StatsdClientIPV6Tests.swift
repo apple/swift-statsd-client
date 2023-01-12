@@ -13,7 +13,9 @@
 //===----------------------------------------------------------------------===//
 
 @testable import CoreMetrics
+#if canImport(NIOCore)
 import NIOCore
+#endif
 @testable import StatsdClient
 import XCTest
 
@@ -66,6 +68,7 @@ class StatsdClientIPV6Tests: XCTestCase {
     }
 }
 
+#if canImport(NIOCore)
 extension System {
     static var supportsIPv6: Bool {
         do {
@@ -76,3 +79,8 @@ extension System {
         }
     }
 }
+#else
+enum System {
+    static let supportsIPv6 = false
+}
+#endif
