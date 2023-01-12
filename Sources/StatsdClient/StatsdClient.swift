@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019-2022 the SwiftStatsdClient project authors
+// Copyright (c) 2019-2023 the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -334,7 +334,7 @@ private final class Client {
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in channel.pipeline.addHandler(Encoder(address: self.address)) }
         // the bind address is local and does not really matter, the remote address is addressed by AddressedEnvelope below
-        return bootstrap.bind(host: "0.0.0.0", port: 0)
+        return bootstrap.bind(host: self.address.protocol == .inet6 ? "::" : "0.0.0.0", port: 0)
     }
 
     private final class Encoder: ChannelOutboundHandler {
@@ -363,17 +363,17 @@ private final class Client {
 
 // MARK: - Metric Name Sanitizer
 
-extension StatsdClient {
+public extension StatsdClient {
     /// Used to sanitize labels (and dimensions) into a format compatible with statsd's wire format.
     ///
     /// By default `StatsdClient` uses the `StatsdClient.defaultMetricNameSanitizer`.
-    public typealias MetricNameSanitizer = (String) -> String
+    typealias MetricNameSanitizer = (String) -> String
 
     /// Default implementation of `LabelSanitizer` that sanitizes any ":" occurrences by replacing them with a replacement character.
     /// Defaults to replacing the illegal characters with "_", e.g. "offending:example" becomes "offending_example".
     ///
     /// See `https://github.com/b/statsd_spec` for more info.
-    public static let defaultMetricNameSanitizer: StatsdClient.MetricNameSanitizer = { label in
+    static let defaultMetricNameSanitizer: StatsdClient.MetricNameSanitizer = { label in
         let illegalCharacter: Character = ":"
         let replacementCharacter: Character = "_"
 

@@ -31,6 +31,9 @@ let package = Package(
             .product(name: "CoreMetrics", package: "swift-metrics"),
             .product(name: "NIO", package: "swift-nio"),
         ]),
-        .testTarget(name: "StatsdClientTests", dependencies: ["StatsdClient"]),
+        .testTarget(name: "StatsdClientTests", dependencies: [
+            .target(name: "StatsdClient"),
+            .product(name: "NIOCore", package: "swift-nio"),
+        ]),
     ]
 )

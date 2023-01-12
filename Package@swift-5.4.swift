@@ -27,6 +27,6 @@ let package = Package(
     ],
     targets: [
         .target(name: "StatsdClient", dependencies: ["CoreMetrics", "NIO"]),
-        .testTarget(name: "StatsdClientTests", dependencies: ["StatsdClient"]),
+        .testTarget(name: "StatsdClientTests", dependencies: ["StatsdClient", "NIOCore"]),
     ]
 )
