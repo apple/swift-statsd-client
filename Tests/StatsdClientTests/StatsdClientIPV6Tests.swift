@@ -24,8 +24,8 @@ private let port = 9999
 private var statsdClient: StatsdClient!
 
 class StatsdClientIPV6Tests: XCTestCase {
-    override func setUpWithError() throws {
-        try super.setUpWithError()
+    override func setUp() {
+        super.setUp()
 
         guard supportsIPv6() else { return }
 
@@ -33,8 +33,8 @@ class StatsdClientIPV6Tests: XCTestCase {
         MetricsSystem.bootstrapInternal(statsdClient)
     }
 
-    override func tearDownWithError() throws {
-        try super.tearDownWithError()
+    override func tearDown() {
+        super.tearDown()
 
         guard supportsIPv6() else { return }
 
