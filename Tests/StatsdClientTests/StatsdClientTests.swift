@@ -276,7 +276,7 @@ class StatsdClientTests: XCTestCase {
         let id = UUID().uuidString
 
         var results = [String]()
-        let lock = Lock()
+        let lock = NIOLock()
 
         let group = DispatchGroup()
         server.onData { _, data in
