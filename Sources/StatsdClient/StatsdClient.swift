@@ -24,8 +24,11 @@ public final class StatsdClient: MetricsFactory {
     private var counters = [String: CounterHandler]() // protected by a lock
     private var recorders = [String: RecorderHandler]() // protected by a lock
     private var timers = [String: TimerHandler]() // protected by a lock
+    #if swift(<5.5)
     private let lock = Lock()
-
+    #else
+    private let lock = NIOLock()
+    #endif
     /// Create a new instance of `StatsdClient`.
     ///
     /// - Parameters:
@@ -130,7 +133,7 @@ public final class StatsdClient: MetricsFactory {
 private final class StatsdCounter: CounterHandler, Equatable {
     let id: String
     let client: Client
-    var value = NIOAtomic<Int64>.makeAtomic(value: 0)
+    var value = AtomicCounter(0)
 
     init(label: String, dimensions: [(String, String)], client: Client) {
         self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.metricNameSanitizer)
@@ -153,7 +156,8 @@ private final class StatsdCounter: CounterHandler, Equatable {
                 return // already at max
             }
             let newValue = oldValue.addingReportingOverflow(amount)
-            if self.value.compareAndExchange(expected: oldValue, desired: newValue.overflow ? Int64.max : newValue.partialValue) {
+
+            if self.value.compareExchange(expected: oldValue, desired: newValue.overflow ? Int64.max : newValue.partialValue) {
                 return
             }
         }
@@ -251,10 +255,14 @@ private final class Client {
 
     private let address: SocketAddress
 
-    private let isShutdown = NIOAtomic<Bool>.makeAtomic(value: false)
+    private let isShutdown = AtomicBoolean(false)
 
     private var state = State.disconnected
+    #if swift(<5.5)
     private let lock = Lock()
+    #else
+    private let lock = NIOLock()
+    #endif
 
     private enum State {
         case disconnected
@@ -285,7 +293,7 @@ private final class Client {
     func shutdown(_ callback: @escaping (Error?) -> Void) {
         switch self.eventLoopGroupProvider {
         case .createNew:
-            if self.isShutdown.compareAndExchange(expected: false, desired: true) {
+            if self.isShutdown.compareExchange(expected: false, desired: true) {
                 self.eventLoopGroup.shutdownGracefully(callback)
             }
         case .shared:

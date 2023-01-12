@@ -276,7 +276,11 @@ class StatsdClientTests: XCTestCase {
         let id = UUID().uuidString
 
         var results = [String]()
+        #if swift(<5.5)
         let lock = Lock()
+        #else
+        let lock = NIOLock()
+        #endif
 
         let group = DispatchGroup()
         server.onData { _, data in
