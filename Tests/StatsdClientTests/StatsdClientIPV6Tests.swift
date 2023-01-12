@@ -22,15 +22,19 @@ private let port = 9999
 private var statsdClient: StatsdClient!
 
 class StatsdClientIPV6Tests: XCTestCase {
-    override class func setUp() {
-        super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+
+        try XCTSkipUnless(System.supportsIPv6)
 
         statsdClient = try! StatsdClient(host: host, port: port)
         MetricsSystem.bootstrapInternal(statsdClient)
     }
 
-    override class func tearDown() {
-        super.tearDown()
+    override func tearDownWithError() throws {
+        try super.tearDownWithError()
+
+        try XCTSkipUnless(System.supportsIPv6)
 
         let semaphore = DispatchSemaphore(value: 0)
         statsdClient.shutdown { error in
