@@ -334,7 +334,7 @@ private final class Client {
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in channel.pipeline.addHandler(Encoder(address: self.address)) }
         // the bind address is local and does not really matter, the remote address is addressed by AddressedEnvelope below
-        return bootstrap.bind(host: self.address.protocol == .inet6 ? "::" : "0.0.0.0", port: 0)
+        return bootstrap.bind(host: System.supportsIPv6 && self.address.protocol == .inet6 ? "::" : "0.0.0.0", port: 0)
     }
 
     private final class Encoder: ChannelOutboundHandler {
@@ -431,5 +431,16 @@ private final class Box<T> {
     let value: T
     init(_ value: T) {
         self.value = value
+    }
+}
+
+private extension System {
+    static var supportsIPv6: Bool {
+        do {
+            let ipv6Loopback = try SocketAddress.makeAddressResolvingHost("::1", port: 0)
+            return try System.enumerateDevices().filter { $0.address == ipv6Loopback }.first != nil
+        } catch {
+            return false
+        }
     }
 }

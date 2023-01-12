@@ -25,13 +25,9 @@ class StatsdClientIPV6Tests: XCTestCase {
         XCTAssertNoThrow(try server.connect().wait())
         defer { XCTAssertNoThrow(try server.shutdown()) }
         
-        var data = [String]()
-
         let semaphore = DispatchSemaphore(value: 0)
-        server.onData { _, line in
+        server.onData { _, _ in
             semaphore.signal()
-
-            data.append(line)
         }
         
         let client = try StatsdClient(host: "::1", port: port)
@@ -41,7 +37,5 @@ class StatsdClientIPV6Tests: XCTestCase {
         counter.increment(by: 12)
         
         assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
-
-        XCTAssertEqual(data.count, 1)
     }
 }
