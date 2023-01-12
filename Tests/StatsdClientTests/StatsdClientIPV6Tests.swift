@@ -27,7 +27,7 @@ class StatsdClientIPV6Tests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
 
-        try XCTSkipUnless(supportsIPv6())
+        guard supportsIPv6() else { return }
 
         statsdClient = try! StatsdClient(host: host, port: port)
         MetricsSystem.bootstrapInternal(statsdClient)
@@ -36,7 +36,7 @@ class StatsdClientIPV6Tests: XCTestCase {
     override func tearDownWithError() throws {
         try super.tearDownWithError()
 
-        try XCTSkipUnless(supportsIPv6())
+        guard supportsIPv6() else { return }
 
         let semaphore = DispatchSemaphore(value: 0)
         statsdClient.shutdown { error in
@@ -50,7 +50,7 @@ class StatsdClientIPV6Tests: XCTestCase {
     }
 
     func testIPV6Address() throws {
-        try XCTSkipUnless(supportsIPv6())
+        guard supportsIPv6() else { return }
 
         let server = TestServer(host: "::1", port: port)
         XCTAssertNoThrow(try server.connect().wait())
