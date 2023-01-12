@@ -12,24 +12,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-import XCTest
 @testable import CoreMetrics
-@testable import StatsdClient
 import NIOCore
+@testable import StatsdClient
+import XCTest
 
 private let host = "::1"
 private let port = 9999
 private var statsdClient: StatsdClient!
 
 class StatsdClientIPV6Tests: XCTestCase {
-
     override class func setUp() {
         super.setUp()
 
         statsdClient = try! StatsdClient(host: host, port: port)
         MetricsSystem.bootstrapInternal(statsdClient)
     }
-    
+
     override class func tearDown() {
         super.tearDown()
 
@@ -46,19 +45,19 @@ class StatsdClientIPV6Tests: XCTestCase {
 
     func testIPV6Address() throws {
         try XCTSkipUnless(System.supportsIPv6)
-        
+
         let server = TestServer(host: "::1", port: port)
         XCTAssertNoThrow(try server.connect().wait())
         defer { XCTAssertNoThrow(try server.shutdown()) }
-        
+
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, _ in
             semaphore.signal()
         }
-        
+
         let counter = Counter(label: UUID().uuidString)
         counter.increment(by: 12)
-        
+
         assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
     }
 }

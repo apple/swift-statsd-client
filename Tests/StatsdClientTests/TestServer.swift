@@ -35,7 +35,7 @@ class TestServer {
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
             .channelInitializer { channel in channel.pipeline.addHandler(Aggregator(delegate: self.store)) }
 
-        return bootstrap.bind(host: self.host, port: self.port).map { _ in Void() }
+        return bootstrap.bind(host: self.host, port: self.port).map { _ in () }
     }
 
     func shutdown() throws {

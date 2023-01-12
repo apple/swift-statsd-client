@@ -363,17 +363,17 @@ private final class Client {
 
 // MARK: - Metric Name Sanitizer
 
-extension StatsdClient {
+public extension StatsdClient {
     /// Used to sanitize labels (and dimensions) into a format compatible with statsd's wire format.
     ///
     /// By default `StatsdClient` uses the `StatsdClient.defaultMetricNameSanitizer`.
-    public typealias MetricNameSanitizer = (String) -> String
+    typealias MetricNameSanitizer = (String) -> String
 
     /// Default implementation of `LabelSanitizer` that sanitizes any ":" occurrences by replacing them with a replacement character.
     /// Defaults to replacing the illegal characters with "_", e.g. "offending:example" becomes "offending_example".
     ///
     /// See `https://github.com/b/statsd_spec` for more info.
-    public static let defaultMetricNameSanitizer: StatsdClient.MetricNameSanitizer = { label in
+    static let defaultMetricNameSanitizer: StatsdClient.MetricNameSanitizer = { label in
         let illegalCharacter: Character = ":"
         let replacementCharacter: Character = "_"
 
