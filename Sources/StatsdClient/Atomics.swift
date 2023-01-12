@@ -19,14 +19,58 @@ import Atomics
 import NIOConcurrencyHelpers
 #endif
 
-internal class Atomic<T: AtomicValue> {
+internal class AtomicCounter {
     #if canImport(Atomics)
-    private let managed: ManagedAtomic<T>
+    private let managed: ManagedAtomic<Int64>
     #else
-    private let nio: NIOAtomic<T>
+    private let nio: NIOAtomic<Int64>
+    #endif
+    
+    init(_ value: Int64) {
+        #if canImport(Atomics)
+        self.managed = ManagedAtomic(value)
+        #else
+        self.nio = NIOAtomic.makeAtomic(value: value)
+        #endif
+    }
+    
+    func load() -> Int64 {
+        #if canImport(Atomics)
+        return self.managed.load(ordering: .sequentiallyConsistent)
+        #else
+        return self.nio.load()
+        #endif
+    }
+    
+    func compareExchange(expected: Int64, desired: Int64) -> Bool {
+        #if canImport(Atomics)
+        return self.managed.compareExchange(
+            expected: expected,
+            desired: desired,
+            ordering: .sequentiallyConsistent
+        ).exchanged
+        #else
+        return self.nio.compareAndExchange(expected: expected, desired: desired)
+        #endif
+    }
+    
+    func store(_ value: Int64) {
+        #if canImport(Atomics)
+        self.managed.store(value, ordering: .sequentiallyConsistent)
+        #else
+        self.nio.store(value)
+        #endif
+    }
+}
+
+internal class AtomicBoolean {
+    #if canImport(Atomics)
+    private let managed: ManagedAtomic<Bool>
+    #else
+    private let nio: NIOAtomic<Bool>
     #endif
 
-    init(_ value: T) {
+    init(_ value: Bool) {
         #if canImport(Atomics)
         self.managed = ManagedAtomic(value)
         #else
@@ -34,7 +78,7 @@ internal class Atomic<T: AtomicValue> {
         #endif
     }
 
-    func load() -> T {
+    func load() -> Bool {
         #if canImport(Atomics)
         return self.managed.load(ordering: .sequentiallyConsistent)
         #else
@@ -42,7 +86,7 @@ internal class Atomic<T: AtomicValue> {
         #endif
     }
 
-    func compareExchange(expected: T, desired: T) -> Bool {
+    func compareExchange(expected: Bool, desired: Bool) -> Bool {
         #if canImport(Atomics)
         return self.managed.compareExchange(
             expected: expected,
@@ -54,7 +98,7 @@ internal class Atomic<T: AtomicValue> {
         #endif
     }
 
-    func store(_ value: T) {
+    func store(_ value: Bool) {
         #if canImport(Atomics)
         self.managed.store(value, ordering: .sequentiallyConsistent)
         #else

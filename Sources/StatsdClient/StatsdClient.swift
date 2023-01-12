@@ -133,7 +133,7 @@ public final class StatsdClient: MetricsFactory {
 private final class StatsdCounter: CounterHandler, Equatable {
     let id: String
     let client: Client
-    var value = Atomic<Int64>(0)
+    var value = AtomicCounter(0)
 
     init(label: String, dimensions: [(String, String)], client: Client) {
         self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.metricNameSanitizer)
@@ -255,7 +255,7 @@ private final class Client {
 
     private let address: SocketAddress
 
-    private let isShutdown = Atomic(false)
+    private let isShutdown = AtomicBoolean(false)
 
     private var state = State.disconnected
     #if swift(<5.5)
