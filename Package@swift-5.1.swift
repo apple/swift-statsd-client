@@ -23,7 +23,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-metrics.git", "1.0.0" ..< "3.0.0"),
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", "2.0.0" ..< "2.29.0"),
     ],
     targets: [
         .target(name: "StatsdClient", dependencies: ["CoreMetrics", "NIO"]),
