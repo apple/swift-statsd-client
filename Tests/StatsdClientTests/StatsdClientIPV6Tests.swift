@@ -15,6 +15,7 @@
 import XCTest
 @testable import CoreMetrics
 @testable import StatsdClient
+import NIOCore
 
 private let host = "::1"
 private let port = 9999
@@ -44,6 +45,8 @@ class StatsdClientIPV6Tests: XCTestCase {
     }
 
     func testIPV6Address() throws {
+        try XCTSkipUnless(System.supportsIPv6)
+        
         let server = TestServer(host: "::1", port: port)
         XCTAssertNoThrow(try server.connect().wait())
         defer { XCTAssertNoThrow(try server.shutdown()) }
@@ -57,5 +60,16 @@ class StatsdClientIPV6Tests: XCTestCase {
         counter.increment(by: 12)
         
         assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
+    }
+}
+
+extension System {
+    static var supportsIPv6: Bool {
+        do {
+            let ipv6Loopback = try SocketAddress.makeAddressResolvingHost("::1", port: 0)
+            return try System.enumerateDevices().filter { $0.address == ipv6Loopback }.first != nil
+        } catch {
+            return false
+        }
     }
 }
