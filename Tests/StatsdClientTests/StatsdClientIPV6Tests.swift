@@ -27,7 +27,7 @@ class StatsdClientIPV6Tests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
 
-        try XCTSkipUnless(System.supportsIPv6)
+        try XCTSkipUnless(supportsIPv6())
 
         statsdClient = try! StatsdClient(host: host, port: port)
         MetricsSystem.bootstrapInternal(statsdClient)
@@ -36,7 +36,7 @@ class StatsdClientIPV6Tests: XCTestCase {
     override func tearDownWithError() throws {
         try super.tearDownWithError()
 
-        try XCTSkipUnless(System.supportsIPv6)
+        try XCTSkipUnless(supportsIPv6())
 
         let semaphore = DispatchSemaphore(value: 0)
         statsdClient.shutdown { error in
@@ -50,7 +50,7 @@ class StatsdClientIPV6Tests: XCTestCase {
     }
 
     func testIPV6Address() throws {
-        try XCTSkipUnless(System.supportsIPv6)
+        try XCTSkipUnless(supportsIPv6())
 
         let server = TestServer(host: "::1", port: port)
         XCTAssertNoThrow(try server.connect().wait())
@@ -68,19 +68,15 @@ class StatsdClientIPV6Tests: XCTestCase {
     }
 }
 
-#if canImport(NIOCore)
-extension System {
-    static var supportsIPv6: Bool {
-        do {
-            let ipv6Loopback = try SocketAddress.makeAddressResolvingHost("::1", port: 0)
-            return try System.enumerateDevices().filter { $0.address == ipv6Loopback }.first != nil
-        } catch {
-            return false
-        }
+func supportsIPv6() -> Bool {
+    #if canImport(NIOCore)
+    do {
+        let ipv6Loopback = try SocketAddress.makeAddressResolvingHost("::1", port: 0)
+        return try System.enumerateDevices().filter { $0.address == ipv6Loopback }.first != nil
+    } catch {
+        return false
     }
+    #else
+    return false
+    #endif
 }
-#else
-enum System {
-    static let supportsIPv6 = false
-}
-#endif
