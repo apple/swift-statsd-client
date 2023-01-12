@@ -25,7 +25,7 @@ internal class AtomicCounter {
     #else
     private let nio: NIOAtomic<Int64>
     #endif
-    
+
     init(_ value: Int64) {
         #if canImport(Atomics)
         self.managed = ManagedAtomic(value)
@@ -33,7 +33,7 @@ internal class AtomicCounter {
         self.nio = NIOAtomic.makeAtomic(value: value)
         #endif
     }
-    
+
     func load() -> Int64 {
         #if canImport(Atomics)
         return self.managed.load(ordering: .sequentiallyConsistent)
@@ -41,7 +41,7 @@ internal class AtomicCounter {
         return self.nio.load()
         #endif
     }
-    
+
     func compareExchange(expected: Int64, desired: Int64) -> Bool {
         #if canImport(Atomics)
         return self.managed.compareExchange(
@@ -53,7 +53,7 @@ internal class AtomicCounter {
         return self.nio.compareAndExchange(expected: expected, desired: desired)
         #endif
     }
-    
+
     func store(_ value: Int64) {
         #if canImport(Atomics)
         self.managed.store(value, ordering: .sequentiallyConsistent)
