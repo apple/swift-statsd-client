@@ -3,13 +3,12 @@ version: "3"
 services:
 
   runtime-setup:
-    image: swift-statsd-client:20.04-5.7
+    image: swift-statsd-client:22.04-main
     build:
       args:
-        ubuntu_version: "focal"
-        swift_version: "5.7"
+        base_image: "swiftlang/swift:nightly-main-jammy"
 
   test:
-    image: swift-statsd-client:20.04-5.7
+    image: swift-statsd-client:22.04-main
     environment:
       - FORCE_TEST_DISCOVERY=--enable-test-discovery
