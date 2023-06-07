@@ -33,10 +33,16 @@ extension StatsdClientTests {
             ("testTimerSeconds", testTimerSeconds),
             ("testGaugeInteger", testGaugeInteger),
             ("testGaugeDouble", testGaugeDouble),
+            ("testMeterInteger", testMeterInteger),
+            ("testMeterDouble", testMeterDouble),
+            ("testMeterIncrement", testMeterIncrement),
+            ("testMeterDecrement", testMeterDecrement),
+            ("testMeterMax", testMeterMax),
+            ("testMeterMin", testMeterMin),
             ("testRecorderInteger", testRecorderInteger),
             ("testRecorderDouble", testRecorderDouble),
             ("testLabelSanitizer", testLabelSanitizer),
-            ("testCouncurrency", testCouncurrency),
+            ("testConcurrency", testConcurrency),
             ("testNumberOfConnections", testNumberOfConnections),
         ]
     }

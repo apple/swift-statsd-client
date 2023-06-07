@@ -22,6 +22,7 @@ import NIOConcurrencyHelpers
 public final class StatsdClient: MetricsFactory {
     private let client: Client
     private var counters = [String: CounterHandler]() // protected by a lock
+    private var meters = [String: MeterHandler]() // protected by a lock
     private var recorders = [String: RecorderHandler]() // protected by a lock
     private var timers = [String: TimerHandler]() // protected by a lock
     #if swift(<5.5)
@@ -66,6 +67,15 @@ public final class StatsdClient: MetricsFactory {
         }
     }
 
+    public func makeMeter(label: String, dimensions: [(String, String)]) -> MeterHandler {
+        let maker = { (label: String, dimensions: [(String, String)]) -> MeterHandler in
+            StatsdMeter(label: label, dimensions: dimensions, client: self.client)
+        }
+        return self.lock.withLock {
+            self.make(label: label, dimensions: dimensions, registry: &self.meters, maker: maker)
+        }
+    }
+
     public func makeRecorder(label: String, dimensions: [(String, String)], aggregate: Bool) -> RecorderHandler {
         let maker = { (label: String, dimensions: [(String, String)]) -> RecorderHandler in
             StatsdRecorder(label: label, dimensions: dimensions, aggregate: aggregate, client: self.client)
@@ -102,6 +112,14 @@ public final class StatsdClient: MetricsFactory {
         }
     }
 
+    public func destroyMeter(_ handler: MeterHandler) {
+        if let meter = handler as? StatsdMeter {
+            self.lock.withLockVoid {
+                self.meters.removeValue(forKey: meter.id)
+            }
+        }
+    }
+
     public func destroyRecorder(_ handler: RecorderHandler) {
         if let recorder = handler as? StatsdRecorder {
             self.lock.withLockVoid {
@@ -130,6 +148,10 @@ public final class StatsdClient: MetricsFactory {
 
 // MARK: - SwiftMetric.Counter implementation
 
+// https://github.com/b/statsd_spec#counters
+// A counter is a gauge calculated at the server. Metrics sent by the client increment or decrement the value of the gauge rather than giving its current value.
+// Counters may also have an associated sample rate, given as a decimal of the number of samples per event count. For example, a sample rate of 1/10 would be exported as 0.1.
+// Valid counter values are in the range (-2^63^, 2^63^).
 private final class StatsdCounter: CounterHandler, Equatable {
     let id: String
     let client: Client
@@ -142,10 +164,6 @@ private final class StatsdCounter: CounterHandler, Equatable {
 
     public func increment(by amount: Int64) {
         self._increment(by: amount)
-        // https://github.com/b/statsd_spec#counters
-        // A counter is a gauge calculated at the server. Metrics sent by the client increment or decrement the value of the gauge rather than giving its current value.
-        // Counters may also have an associated sample rate, given as a decimal of the number of samples per event count. For example, a sample rate of 1/10 would be exported as 0.1.
-        // Valid counter values are in the range (-2^63^, 2^63^).
         _ = self.client.emit(Metric(name: self.id, value: amount, type: .counter))
     }
 
@@ -174,8 +192,102 @@ private final class StatsdCounter: CounterHandler, Equatable {
     }
 }
 
+// MARK: - SwiftMetric.Meter implementation
+
+// https://github.com/b/statsd_spec#gauges
+// A gauge is an instantaneous measurement of a value, like the gas gauge in a car.
+// It differs from a counter by being calculated at the client rather than the server.
+// Valid gauge values are in the range [0, 2^64^)
+private final class StatsdMeter: MeterHandler, Equatable {
+    private static var MIN = Double(0)
+    private static var MAX = Double(Int64.max)
+
+    let id: String
+    let client: Client
+    var value = AtomicDoubleCounter(0)
+
+    init(label: String, dimensions: [(String, String)], client: Client) {
+        self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.metricNameSanitizer)
+        self.client = client
+    }
+
+    func set(_ value: Int64) {
+        self.set(Double(value))
+    }
+
+    func set(_ value: Double) {
+        let value = Swift.min(StatsdMeter.MAX, Swift.max(StatsdMeter.MIN, value))
+        self._set(to: value)
+        self.emit(value)
+    }
+
+    func increment(by amount: Double) {
+        let value = self._change(by: amount)
+        self.emit(value)
+    }
+
+    func decrement(by amount: Double) {
+        let value = self._change(by: -amount)
+        self.emit(value)
+    }
+
+    private func _set(to value: Double) {
+        while true {
+            let oldValue = self.value.load()
+            guard oldValue != value else {
+                return // already at value
+            }
+            if self.value.compareExchange(expected: oldValue, desired: value) {
+                return
+            }
+        }
+    }
+
+    @discardableResult
+    private func _change(by amount: Double) -> Double {
+        while true {
+            let oldValue = self.value.load()
+            if amount > 0 {
+                guard oldValue != StatsdMeter.MAX else {
+                    return StatsdMeter.MAX // already at max
+                }
+                let newValue = Swift.min(oldValue + amount, StatsdMeter.MAX)
+                if self.value.compareExchange(expected: oldValue, desired: newValue) {
+                    return newValue
+                }
+            } else if amount < 0 {
+                guard oldValue != StatsdMeter.MIN else {
+                    return StatsdMeter.MIN // already at min
+                }
+                let newValue = Swift.max(oldValue + amount, StatsdMeter.MIN)
+                if self.value.compareExchange(expected: oldValue, desired: newValue) {
+                    return newValue
+                }
+            } else {
+                return oldValue
+            }
+        }
+    }
+
+    private func emit(_ value: Double) {
+        _ = self.client.emit(Metric(name: self.id, value: value, type: .gauge))
+    }
+
+    public static func == (lhs: StatsdMeter, rhs: StatsdMeter) -> Bool {
+        return lhs.id == rhs.id
+    }
+}
+
 // MARK: - SwiftMetric.Recorder implementation
 
+// https://github.com/b/statsd_spec#histograms
+// A histogram is a measure of the distribution of timer values over time, calculated at the server.
+// As the data exported for timers and histograms is the same, this is currently an alias for a timer.
+// Valid histogram values are in the range [0, 2^64^).
+// https://github.com/b/statsd_spec#gauges
+// A gauge is an instantaneous measurement of a value, like the gas gauge in a car.
+// It differs from a counter by being calculated at the client rather than the server.
+// Valid gauge values are in the range [0, 2^64^)
 private final class StatsdRecorder: RecorderHandler, Equatable {
     let id: String
     let aggregate: Bool
@@ -189,28 +301,12 @@ private final class StatsdRecorder: RecorderHandler, Equatable {
     }
 
     func record(_ value: Int64) {
-        // https://github.com/b/statsd_spec#histograms
-        // A histogram is a measure of the distribution of timer values over time, calculated at the server.
-        // As the data exported for timers and histograms is the same, this is currently an alias for a timer.
-        // Valid histogram values are in the range [0, 2^64^).
-        // https://github.com/b/statsd_spec#gauges
-        // A gauge is an instantaneous measurement of a value, like the gas gauge in a car.
-        // It differs from a counter by being calculated at the client rather than the server.
-        // Valid gauge values are in the range [0, 2^64^)
         let type: MetricType = self.aggregate ? .histogram : .gauge
         let value = Swift.max(0, value)
         _ = self.client.emit(Metric(name: self.id, value: value, type: type))
     }
 
     func record(_ value: Double) {
-        // https://github.com/b/statsd_spec#histograms
-        // A histogram is a measure of the distribution of timer values over time, calculated at the server.
-        // As the data exported for timers and histograms is the same, this is currently an alias for a timer.
-        // Valid histogram values are in the range [0, 2^64^).
-        // https://github.com/b/statsd_spec#gauges
-        // A gauge is an instantaneous measurement of a value, like the gas gauge in a car.
-        // It differs from a counter by being calculated at the client rather than the server.
-        // Valid gauge values are in the range [0, 2^64^)
         let type: MetricType = self.aggregate ? .histogram : .gauge
         let value = Swift.max(0, value)
         _ = self.client.emit(Metric(name: self.id, value: value, type: type))
@@ -223,6 +319,9 @@ private final class StatsdRecorder: RecorderHandler, Equatable {
 
 // MARK: - SwiftMetric.Timer implementation
 
+// https://github.com/b/statsd_spec#timers
+// A timer is a measure of the number of milliseconds elapsed between a start and end time, for example the time to complete rendering of a web page for a user.
+// Valid timer values are in the range [0, 2^64^).
 private final class StatsdTimer: TimerHandler, Equatable {
     let id: String
     let client: Client
@@ -233,9 +332,6 @@ private final class StatsdTimer: TimerHandler, Equatable {
     }
 
     public func recordNanoseconds(_ duration: Int64) {
-        // https://github.com/b/statsd_spec#timers
-        // A timer is a measure of the number of milliseconds elapsed between a start and end time, for example the time to complete rendering of a web page for a user.
-        // Valid timer values are in the range [0, 2^64^).
         let value = Swift.max(0.0, Double(duration) / 1_000_000.0)
         _ = self.client.emit(Metric(name: self.id, value: value, type: .timer))
     }
@@ -422,7 +518,15 @@ private struct Metric {
 
     init(name: String, value: Double, type: MetricType) {
         self.name = name
-        self.value = floor(value) != value ? String(value) : String(Int64(value))
+        if floor(value) != value {
+            self.value = String(value)
+        } else if value >= Double(Int64.max) {
+            self.value = String(Int64.max)
+        } else if value <= Double(Int64.min) {
+            self.value = String(Int64.min)
+        } else {
+            self.value = String(Int64(value))
+        }
         self.type = type
     }
 }
