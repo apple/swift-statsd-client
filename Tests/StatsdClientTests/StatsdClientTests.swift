@@ -207,6 +207,154 @@ class StatsdClientTests: XCTestCase {
         assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
     }
 
+    func testMeterInteger() {
+        let server = TestServer(host: host, port: port)
+        XCTAssertNoThrow(try server.connect().wait())
+        defer { XCTAssertNoThrow(try server.shutdown()) }
+
+        let id = UUID().uuidString
+        let value = Int64.random(in: 0 ... 1000)
+
+        let semaphore = DispatchSemaphore(value: 0)
+        server.onData { _, data in
+            defer { semaphore.signal() }
+            XCTAssertEqual(data, "\(id):\(value)|g", "expected entries to match")
+        }
+
+        let meter = Meter(label: id)
+        meter.set(value)
+
+        assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
+    }
+
+    func testMeterDouble() {
+        let server = TestServer(host: host, port: port)
+        XCTAssertNoThrow(try server.connect().wait())
+        defer { XCTAssertNoThrow(try server.shutdown()) }
+
+        let id = UUID().uuidString
+        let value = Double.random(in: 0 ... 1000)
+
+        let semaphore = DispatchSemaphore(value: 0)
+        server.onData { _, data in
+            defer { semaphore.signal() }
+            XCTAssertEqual(data, "\(id):\(value)|g", "expected entries to match")
+        }
+
+        let meter = Meter(label: id)
+        meter.set(value)
+
+        assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
+    }
+
+    func testMeterIncrement() {
+        let server = TestServer(host: host, port: port)
+        XCTAssertNoThrow(try server.connect().wait())
+        defer { XCTAssertNoThrow(try server.shutdown()) }
+
+        let id = UUID().uuidString
+        let value1 = Double.random(in: 1 ..< 1000)
+        let value2 = Double.random(in: 1 ..< 1000)
+
+        let counter = AtomicCounter(0)
+        let semaphore = DispatchSemaphore(value: 0)
+        server.onData { _, data in
+            switch counter.wrappingIncrementThenLoad() {
+            case 1:
+                XCTAssertEqual(data, "\(id):\(value1)|g", "expected entries to match")
+            case 2:
+                XCTAssertEqual(data, "\(id):\(value1 + value2)|g", "expected entries to match")
+                semaphore.signal()
+            default:
+                semaphore.signal()
+            }
+        }
+
+        let meter = Meter(label: id)
+        meter.set(value1)
+        meter.increment(by: value2)
+
+        assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
+    }
+
+    func testMeterDecrement() {
+        let server = TestServer(host: host, port: port)
+        XCTAssertNoThrow(try server.connect().wait())
+        defer { XCTAssertNoThrow(try server.shutdown()) }
+
+        let id = UUID().uuidString
+        let value1 = Double.random(in: 1 ..< 1000)
+        let value2 = Double.random(in: 1 ..< value1)
+
+        let counter = AtomicCounter(0)
+        let semaphore = DispatchSemaphore(value: 0)
+        server.onData { _, data in
+            switch counter.wrappingIncrementThenLoad() {
+            case 1:
+                XCTAssertEqual(data, "\(id):\(value1)|g", "expected entries to match")
+            case 2:
+                XCTAssertEqual(data, "\(id):\(value1 - value2)|g", "expected entries to match")
+                semaphore.signal()
+            default:
+                semaphore.signal()
+            }
+        }
+
+        let meter = Meter(label: id)
+        meter.set(value1)
+        meter.decrement(by: value2)
+
+        assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
+    }
+
+    func testMeterMax() {
+        let server = TestServer(host: host, port: port)
+        XCTAssertNoThrow(try server.connect().wait())
+        defer { XCTAssertNoThrow(try server.shutdown()) }
+
+        let id = UUID().uuidString
+
+        let group = DispatchGroup()
+        group.enter()
+        group.enter()
+        group.enter()
+        server.onData { _, data in
+            defer { group.leave() }
+            XCTAssertEqual(data, "\(id):\(Int64.max)|g", "expected entries to match")
+        }
+
+        let meter = Meter(label: id)
+        meter.set(Int64.max)
+        meter.increment(by: Double.random(in: 1 ..< 100))
+        meter.increment(by: Double(Int64.max))
+
+        assertTimeoutResult(group.wait(timeout: .now() + .seconds(1)))
+    }
+
+    func testMeterMin() {
+        let server = TestServer(host: host, port: port)
+        XCTAssertNoThrow(try server.connect().wait())
+        defer { XCTAssertNoThrow(try server.shutdown()) }
+
+        let id = UUID().uuidString
+
+        let group = DispatchGroup()
+        group.enter()
+        group.enter()
+        group.enter()
+        server.onData { _, data in
+            defer { group.leave() }
+            XCTAssertEqual(data, "\(id):0|g", "expected entries to match")
+        }
+
+        let meter = Meter(label: id)
+        meter.set(0)
+        meter.decrement(by: Double.random(in: 1 ..< 100))
+        meter.decrement(by: Double(Int64.max))
+
+        assertTimeoutResult(group.wait(timeout: .now() + .seconds(1)))
+    }
+
     func testRecorderInteger() {
         let server = TestServer(host: host, port: port)
         XCTAssertNoThrow(try server.connect().wait())
@@ -268,7 +416,7 @@ class StatsdClientTests: XCTestCase {
         assertTimeoutResult(semaphore.wait(timeout: .now() + .seconds(1)))
     }
 
-    func testCouncurrency() {
+    func testConcurrency() {
         let server = TestServer(host: host, port: port)
         XCTAssertNoThrow(try server.connect().wait())
         defer { XCTAssertNoThrow(try server.shutdown()) }
@@ -335,5 +483,19 @@ class StatsdClientTests: XCTestCase {
 func assertTimeoutResult(_ result: DispatchTimeoutResult) {
     if case .timedOut = result {
         XCTFail("timeout")
+    }
+}
+
+// FIXME: move to swift-metrics
+extension Meter {
+    public func increment(by amount: Double) {
+        self._handler.increment(by: amount)
+    }
+}
+
+// FIXME: move to swift-metrics
+extension Meter {
+    public func decrement(by amount: Double) {
+        self._handler.decrement(by: amount)
     }
 }
