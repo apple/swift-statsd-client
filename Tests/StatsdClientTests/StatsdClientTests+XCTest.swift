@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019 the SwiftStatsdClient project authors
+// Copyright (c) 2019 Apple Inc. and the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -24,7 +24,7 @@ import XCTest
 
 extension StatsdClientTests {
     static var allTests: [(String, (StatsdClientTests) -> () throws -> Void)] {
-        return [
+        [
             ("testCounter", testCounter),
             ("testCounterOverflow", testCounterOverflow),
             ("testTimerNanoseconds", testTimerNanoseconds),

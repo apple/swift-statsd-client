@@ -43,3 +43,7 @@ Please see [SECURITY.md](SECURITY.md) for details on the security process.
 ## Getting involved
 
 Do not hesitate to get in touch as well, over on https://forums.swift.org/c/server
+
+### Run CI checks locally
+
+You can run the GitHub Actions workflows locally using [act](https://github.com/nektos/act). For detailed steps on how to do this please see [https://github.com/swiftlang/github-workflows?tab=readme-ov-file#running-workflows-locally](https://github.com/swiftlang/github-workflows?tab=readme-ov-file#running-workflows-locally).
