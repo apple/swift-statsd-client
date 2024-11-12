@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019-2023 the SwiftStatsdClient project authors
+// Copyright (c) 2019-2023 Apple Inc. and the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -12,12 +12,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-@testable import CoreMetrics
 import NIO
 import NIOConcurrencyHelpers
-import class NIOConcurrencyHelpers.Lock
-@testable import StatsdClient
 import XCTest
+
+import class NIOConcurrencyHelpers.Lock
+
+@testable import CoreMetrics
+@testable import StatsdClient
 
 private let host = "127.0.0.1"
 private let port = 9999
@@ -51,7 +53,7 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value = Int64.random(in: 0 ... 1000)
+        let value = Int64.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -173,7 +175,7 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value = Int64.random(in: 0 ... 1000)
+        let value = Int64.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -193,7 +195,7 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value = Double.random(in: 0 ... 1000)
+        let value = Double.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -213,7 +215,7 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value = Int64.random(in: 0 ... 1000)
+        let value = Int64.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -233,7 +235,7 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value = Double.random(in: 0 ... 1000)
+        let value = Double.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -253,8 +255,8 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value1 = Double.random(in: 1 ..< 1000)
-        let value2 = Double.random(in: 1 ..< 1000)
+        let value1 = Double.random(in: 1..<1000)
+        let value2 = Double.random(in: 1..<1000)
 
         let counter = AtomicCounter(0)
         let semaphore = DispatchSemaphore(value: 0)
@@ -283,8 +285,8 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value1 = Double.random(in: 1 ..< 1000)
-        let value2 = Double.random(in: 1 ..< value1)
+        let value1 = Double.random(in: 1..<1000)
+        let value2 = Double.random(in: 1..<value1)
 
         let counter = AtomicCounter(0)
         let semaphore = DispatchSemaphore(value: 0)
@@ -325,7 +327,7 @@ class StatsdClientTests: XCTestCase {
 
         let meter = Meter(label: id)
         meter.set(Int64.max)
-        meter.increment(by: Double.random(in: 1 ..< 100))
+        meter.increment(by: Double.random(in: 1..<100))
         meter.increment(by: Double(Int64.max))
 
         assertTimeoutResult(group.wait(timeout: .now() + .seconds(1)))
@@ -349,7 +351,7 @@ class StatsdClientTests: XCTestCase {
 
         let meter = Meter(label: id)
         meter.set(0)
-        meter.decrement(by: Double.random(in: 1 ..< 100))
+        meter.decrement(by: Double.random(in: 1..<100))
         meter.decrement(by: Double(Int64.max))
 
         assertTimeoutResult(group.wait(timeout: .now() + .seconds(1)))
@@ -361,7 +363,7 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value = Int64.random(in: 0 ... 1000)
+        let value = Int64.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -381,7 +383,7 @@ class StatsdClientTests: XCTestCase {
         defer { XCTAssertNoThrow(try server.shutdown()) }
 
         let id = UUID().uuidString
-        let value = Double.random(in: 0 ... 1000)
+        let value = Double.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -402,7 +404,7 @@ class StatsdClientTests: XCTestCase {
 
         let illegalID = "hello/:who"
         let sanitizedID = "hello/_who"
-        let value = Double.random(in: 0 ... 1000)
+        let value = Double.random(in: 0...1000)
 
         let semaphore = DispatchSemaphore(value: 0)
         server.onData { _, data in
@@ -424,11 +426,7 @@ class StatsdClientTests: XCTestCase {
         let id = UUID().uuidString
 
         var results = [String]()
-        #if swift(<5.5)
-        let lock = Lock()
-        #else
         let lock = NIOLock()
-        #endif
 
         let group = DispatchGroup()
         server.onData { _, data in
@@ -439,8 +437,8 @@ class StatsdClientTests: XCTestCase {
         }
 
         let queue = DispatchQueue(label: "testCouncurrency")
-        let total = Int.random(in: 300 ... 500)
-        for _ in 0 ..< total {
+        let total = Int.random(in: 300...500)
+        for _ in 0..<total {
             group.enter()
             queue.async {
                 let counter = Counter(label: id)
@@ -450,7 +448,7 @@ class StatsdClientTests: XCTestCase {
 
         assertTimeoutResult(group.wait(timeout: .now() + .seconds(1)))
         XCTAssertEqual(total, results.count, "expected numb of entries to match")
-        for _ in 0 ..< total {
+        for _ in 0..<total {
             XCTAssertEqual(results.last!, "\(id):\(1)|c", "expected entries to match")
         }
     }
@@ -468,8 +466,8 @@ class StatsdClientTests: XCTestCase {
             clients.insert(address.description)
         }
 
-        let total = Int.random(in: 300 ... 500)
-        for _ in 0 ..< total {
+        let total = Int.random(in: 300...500)
+        for _ in 0..<total {
             group.enter()
             let counter = Counter(label: "test")
             counter.increment(by: 1)

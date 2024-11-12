@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019-2023 the SwiftStatsdClient project authors
+// Copyright (c) 2019-2023 Apple Inc. and the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -21,21 +21,18 @@ import NIOConcurrencyHelpers
 /// The client uses `SwiftNIO` to establish a UDP connection to the `statsd` server.
 public final class StatsdClient: MetricsFactory {
     private let client: Client
-    private var counters = [String: CounterHandler]() // protected by a lock
-    private var meters = [String: MeterHandler]() // protected by a lock
-    private var recorders = [String: RecorderHandler]() // protected by a lock
-    private var timers = [String: TimerHandler]() // protected by a lock
-    #if swift(<5.5)
-    private let lock = Lock()
-    #else
+    private var counters = [String: CounterHandler]()  // protected by a lock
+    private var meters = [String: MeterHandler]()  // protected by a lock
+    private var recorders = [String: RecorderHandler]()  // protected by a lock
+    private var timers = [String: TimerHandler]()  // protected by a lock
     private let lock = NIOLock()
-    #endif
     /// Create a new instance of `StatsdClient`.
     ///
     /// - Parameters:
     ///   - eventLoopGroupProvider: The ``EventLoopGroupProvider`` to use, uses ``EventLoopGroupProvider/createNew`` strategy by default.
     ///   - host: The `statsd` server host.
     ///   - port: The `statsd` server port.
+    ///   - metricNameSanitizer: Used to sanitize labels (and dimensions) into a format compatible with statsd's wire format.
     public init(
         eventLoopGroupProvider: EventLoopGroupProvider = .createNew,
         host: String,
@@ -43,7 +40,11 @@ public final class StatsdClient: MetricsFactory {
         metricNameSanitizer: @escaping StatsdClient.MetricNameSanitizer = StatsdClient.defaultMetricNameSanitizer
     ) throws {
         let address = try SocketAddress.makeAddressResolvingHost(host, port: port)
-        self.client = Client(eventLoopGroupProvider: eventLoopGroupProvider, address: address, metricNameSanitizer: metricNameSanitizer)
+        self.client = Client(
+            eventLoopGroupProvider: eventLoopGroupProvider,
+            address: address,
+            metricNameSanitizer: metricNameSanitizer
+        )
     }
 
     /// Shutdown the client. This is a noop when using the ``EventLoopGroupProvider/shared(_:)`` strategy.
@@ -94,7 +95,12 @@ public final class StatsdClient: MetricsFactory {
         }
     }
 
-    private func make<Item>(label: String, dimensions: [(String, String)], registry: inout [String: Item], maker: (String, [(String, String)]) -> Item) -> Item {
+    private func make<Item>(
+        label: String,
+        dimensions: [(String, String)],
+        registry: inout [String: Item],
+        maker: (String, [(String, String)]) -> Item
+    ) -> Item {
         let id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: self.client.metricNameSanitizer)
         if let item = registry[id] {
             return item
@@ -171,11 +177,14 @@ private final class StatsdCounter: CounterHandler, Equatable {
         while true {
             let oldValue = self.value.load()
             guard oldValue != Int64.max else {
-                return // already at max
+                return  // already at max
             }
             let newValue = oldValue.addingReportingOverflow(amount)
 
-            if self.value.compareExchange(expected: oldValue, desired: newValue.overflow ? Int64.max : newValue.partialValue) {
+            if self.value.compareExchange(
+                expected: oldValue,
+                desired: newValue.overflow ? Int64.max : newValue.partialValue
+            ) {
                 return
             }
         }
@@ -188,7 +197,7 @@ private final class StatsdCounter: CounterHandler, Equatable {
     }
 
     public static func == (lhs: StatsdCounter, rhs: StatsdCounter) -> Bool {
-        return lhs.id == rhs.id
+        lhs.id == rhs.id
     }
 }
 
@@ -235,7 +244,7 @@ private final class StatsdMeter: MeterHandler, Equatable {
         while true {
             let oldValue = self.value.load()
             guard oldValue != value else {
-                return // already at value
+                return  // already at value
             }
             if self.value.compareExchange(expected: oldValue, desired: value) {
                 return
@@ -249,7 +258,7 @@ private final class StatsdMeter: MeterHandler, Equatable {
             let oldValue = self.value.load()
             if amount > 0 {
                 guard oldValue != StatsdMeter.MAX else {
-                    return StatsdMeter.MAX // already at max
+                    return StatsdMeter.MAX  // already at max
                 }
                 let newValue = Swift.min(oldValue + amount, StatsdMeter.MAX)
                 if self.value.compareExchange(expected: oldValue, desired: newValue) {
@@ -257,7 +266,7 @@ private final class StatsdMeter: MeterHandler, Equatable {
                 }
             } else if amount < 0 {
                 guard oldValue != StatsdMeter.MIN else {
-                    return StatsdMeter.MIN // already at min
+                    return StatsdMeter.MIN  // already at min
                 }
                 let newValue = Swift.max(oldValue + amount, StatsdMeter.MIN)
                 if self.value.compareExchange(expected: oldValue, desired: newValue) {
@@ -274,7 +283,7 @@ private final class StatsdMeter: MeterHandler, Equatable {
     }
 
     public static func == (lhs: StatsdMeter, rhs: StatsdMeter) -> Bool {
-        return lhs.id == rhs.id
+        lhs.id == rhs.id
     }
 }
 
@@ -313,7 +322,7 @@ private final class StatsdRecorder: RecorderHandler, Equatable {
     }
 
     public static func == (lhs: StatsdRecorder, rhs: StatsdRecorder) -> Bool {
-        return lhs.id == rhs.id
+        lhs.id == rhs.id
     }
 }
 
@@ -337,7 +346,7 @@ private final class StatsdTimer: TimerHandler, Equatable {
     }
 
     public static func == (lhs: StatsdTimer, rhs: StatsdTimer) -> Bool {
-        return lhs.id == rhs.id
+        lhs.id == rhs.id
     }
 }
 
@@ -354,11 +363,7 @@ private final class Client {
     private let isShutdown = AtomicBoolean(false)
 
     private var state = State.disconnected
-    #if swift(<5.5)
-    private let lock = Lock()
-    #else
     private let lock = NIOLock()
-    #endif
 
     private enum State {
         case disconnected
@@ -460,24 +465,27 @@ private final class Client {
             let string = "\(metric.name):\(metric.value)|\(metric.type.rawValue)"
             var buffer = context.channel.allocator.buffer(capacity: string.utf8.count)
             buffer.writeString(string)
-            context.writeAndFlush(self.wrapOutboundOut(AddressedEnvelope(remoteAddress: self.address, data: buffer)), promise: promise)
+            context.writeAndFlush(
+                self.wrapOutboundOut(AddressedEnvelope(remoteAddress: self.address, data: buffer)),
+                promise: promise
+            )
         }
     }
 }
 
 // MARK: - Metric Name Sanitizer
 
-public extension StatsdClient {
+extension StatsdClient {
     /// Used to sanitize labels (and dimensions) into a format compatible with statsd's wire format.
     ///
     /// By default `StatsdClient` uses the `StatsdClient.defaultMetricNameSanitizer`.
-    typealias MetricNameSanitizer = (String) -> String
+    public typealias MetricNameSanitizer = (String) -> String
 
     /// Default implementation of `LabelSanitizer` that sanitizes any ":" occurrences by replacing them with a replacement character.
     /// Defaults to replacing the illegal characters with "_", e.g. "offending:example" becomes "offending_example".
     ///
     /// See `https://github.com/b/statsd_spec` for more info.
-    static let defaultMetricNameSanitizer: StatsdClient.MetricNameSanitizer = { label in
+    public static let defaultMetricNameSanitizer: StatsdClient.MetricNameSanitizer = { label in
         let illegalCharacter: Character = ":"
         let replacementCharacter: Character = "_"
 
@@ -486,16 +494,22 @@ public extension StatsdClient {
         }
 
         // replacingOccurrences would be used, but is in Foundation which we try to not depend on here
-        return String(label.compactMap { (c: Character) -> Character? in
-            c != illegalCharacter ? c : replacementCharacter
-        })
+        return String(
+            label.compactMap { (c: Character) -> Character? in
+                c != illegalCharacter ? c : replacementCharacter
+            }
+        )
     }
 }
 
 // MARK: - Utility
 
 private enum StatsdUtils {
-    static func id(label: String, dimensions: [(String, String)], sanitizer sanitize: StatsdClient.MetricNameSanitizer) -> String {
+    static func id(
+        label: String,
+        dimensions: [(String, String)],
+        sanitizer sanitize: StatsdClient.MetricNameSanitizer
+    ) -> String {
         if dimensions.isEmpty {
             return sanitize(label)
         } else {

@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019-2023 the SwiftStatsdClient project authors
+// Copyright (c) 2019-2023 Apple Inc. and the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -12,12 +12,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+import XCTest
+
 @testable import CoreMetrics
+@testable import StatsdClient
+
 #if canImport(NIOCore)
 import NIOCore
 #endif
-@testable import StatsdClient
-import XCTest
 
 private let host = "::1"
 private let port = 9999

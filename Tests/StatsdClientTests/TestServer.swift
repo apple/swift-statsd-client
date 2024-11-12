@@ -2,7 +2,7 @@
 //
 // This source file is part of the SwiftStatsdClient open source project
 //
-// Copyright (c) 2019-2023 the SwiftStatsdClient project authors
+// Copyright (c) 2019-2023 Apple Inc. and the SwiftStatsdClient project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -14,8 +14,9 @@
 
 import Foundation
 import NIO
-@testable import StatsdClient
 import XCTest
+
+@testable import StatsdClient
 
 class TestServer {
     let host: String
@@ -63,7 +64,10 @@ class TestServer {
 
         func channelRead(context: ChannelHandlerContext, data: NIOAny) {
             let envelope = self.unwrapInboundIn(data)
-            let string = String(bytes: envelope.data.getBytes(at: envelope.data.readerIndex, length: envelope.data.readableBytes)!, encoding: .utf8)!
+            let string = String(
+                bytes: envelope.data.getBytes(at: envelope.data.readerIndex, length: envelope.data.readableBytes)!,
+                encoding: .utf8
+            )!
             self.delegate(envelope.remoteAddress, string)
         }
     }
