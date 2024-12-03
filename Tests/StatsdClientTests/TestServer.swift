@@ -14,16 +14,18 @@
 
 import Foundation
 import NIO
+import NIOConcurrencyHelpers
 import XCTest
 
 @testable import StatsdClient
 
-class TestServer {
+final class TestServer: @unchecked Sendable {
     let host: String
     let port: Int
     let eventLoopGroup: EventLoopGroup
 
-    var delegate: ((SocketAddress, String) -> Void)?
+    let lock = NIOLock()
+    private var locked_delegate: ((SocketAddress, String) -> Void)?
 
     init(host: String, port: Int) {
         self.host = host
@@ -44,11 +46,13 @@ class TestServer {
     }
 
     func onData(delegate: @escaping (SocketAddress, String) -> Void) {
-        self.delegate = delegate
+        self.lock.withLock {
+            self.locked_delegate = delegate
+        }
     }
 
     func store(address: SocketAddress, value: String) {
-        if let delegate = self.delegate {
+        if let delegate = self.lock.withLock({ self.locked_delegate }) {
             delegate(address, value)
         }
     }
