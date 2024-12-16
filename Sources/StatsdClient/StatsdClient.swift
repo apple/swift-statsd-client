@@ -19,7 +19,7 @@ import NIOConcurrencyHelpers
 
 /// `StatsdClient` is a metrics backend for `SwiftMetrics`, designed to integrate applications with observability servers that support `statsd` protocol.
 /// The client uses `SwiftNIO` to establish a UDP connection to the `statsd` server.
-public final class StatsdClient: MetricsFactory {
+public final class StatsdClient: MetricsFactory, @unchecked Sendable {
     private let client: Client
     private var counters = [String: CounterHandler]()  // protected by a lock
     private var meters = [String: MeterHandler]()  // protected by a lock
@@ -53,7 +53,8 @@ public final class StatsdClient: MetricsFactory {
     ///
     /// - Parameters:
     ///   - callback: A callback for when shutdown is complete.
-    public func shutdown(_ callback: @escaping (Error?) -> Void) {
+    @preconcurrency
+    public func shutdown(_ callback: @Sendable @escaping (Error?) -> Void) {
         self.client.shutdown(callback)
     }
 
@@ -146,7 +147,7 @@ public final class StatsdClient: MetricsFactory {
     ///
     /// When `shared`, the `EventLoopGroup` is provided externally and its lifecycle will be managed by the caller.
     /// When `createNew`, the library will create a new `EventLoopGroup` and manage its lifecycle.
-    public enum EventLoopGroupProvider {
+    public enum EventLoopGroupProvider: Sendable {
         case shared(EventLoopGroup)
         case createNew
     }
@@ -158,10 +159,10 @@ public final class StatsdClient: MetricsFactory {
 // A counter is a gauge calculated at the server. Metrics sent by the client increment or decrement the value of the gauge rather than giving its current value.
 // Counters may also have an associated sample rate, given as a decimal of the number of samples per event count. For example, a sample rate of 1/10 would be exported as 0.1.
 // Valid counter values are in the range (-2^63^, 2^63^).
-private final class StatsdCounter: CounterHandler, Equatable {
+private final class StatsdCounter: CounterHandler, Equatable, @unchecked Sendable {
     let id: String
     let client: Client
-    var value = AtomicCounter(0)
+    let value = AtomicCounter(0)
 
     init(label: String, dimensions: [(String, String)], client: Client) {
         self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.metricNameSanitizer)
@@ -207,13 +208,13 @@ private final class StatsdCounter: CounterHandler, Equatable {
 // A gauge is an instantaneous measurement of a value, like the gas gauge in a car.
 // It differs from a counter by being calculated at the client rather than the server.
 // Valid gauge values are in the range [0, 2^64^)
-private final class StatsdMeter: MeterHandler, Equatable {
-    private static var MIN = Double(0)
-    private static var MAX = Double(Int64.max)
+private final class StatsdMeter: MeterHandler, Equatable, @unchecked Sendable {
+    private static let MIN = Double(0)
+    private static let MAX = Double(Int64.max)
 
     let id: String
     let client: Client
-    var value = AtomicDoubleCounter(0)
+    let value = AtomicDoubleCounter(0)
 
     init(label: String, dimensions: [(String, String)], client: Client) {
         self.id = StatsdUtils.id(label: label, dimensions: dimensions, sanitizer: client.metricNameSanitizer)
@@ -352,7 +353,7 @@ private final class StatsdTimer: TimerHandler, Equatable {
 
 // MARK: - NIO UDP Client implementation
 
-private final class Client {
+private final class Client: @unchecked Sendable {
     private let eventLoopGroupProvider: StatsdClient.EventLoopGroupProvider
     private let eventLoopGroup: EventLoopGroup
 
@@ -391,7 +392,7 @@ private final class Client {
         precondition(self.isShutdown.load(), "client not stopped before the deinit.")
     }
 
-    func shutdown(_ callback: @escaping (Error?) -> Void) {
+    func shutdown(_ callback: @Sendable @escaping (Error?) -> Void) {
         switch self.eventLoopGroupProvider {
         case .createNew:
             if self.isShutdown.compareExchange(expected: false, desired: true) {
@@ -479,7 +480,7 @@ extension StatsdClient {
     /// Used to sanitize labels (and dimensions) into a format compatible with statsd's wire format.
     ///
     /// By default `StatsdClient` uses the `StatsdClient.defaultMetricNameSanitizer`.
-    public typealias MetricNameSanitizer = (String) -> String
+    public typealias MetricNameSanitizer = @Sendable (String) -> String
 
     /// Default implementation of `LabelSanitizer` that sanitizes any ":" occurrences by replacing them with a replacement character.
     /// Defaults to replacing the illegal characters with "_", e.g. "offending:example" becomes "offending_example".

@@ -23,9 +23,10 @@ import NIOCore
 
 private let host = "::1"
 private let port = 9999
-private var statsdClient: StatsdClient!
 
 class StatsdClientIPV6Tests: XCTestCase {
+    private var statsdClient: StatsdClient!
+
     override func setUp() {
         super.setUp()
 

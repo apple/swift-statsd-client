@@ -23,17 +23,18 @@ import class NIOConcurrencyHelpers.Lock
 
 private let host = "127.0.0.1"
 private let port = 9999
-private var statsdClient: StatsdClient!
 
 class StatsdClientTests: XCTestCase {
-    override class func setUp() {
+    private var statsdClient: StatsdClient!
+
+    override func setUp() {
         super.setUp()
 
         statsdClient = try! StatsdClient(host: host, port: port)
         MetricsSystem.bootstrapInternal(statsdClient)
     }
 
-    override class func tearDown() {
+    override func tearDown() {
         super.tearDown()
 
         let semaphore = DispatchSemaphore(value: 0)
