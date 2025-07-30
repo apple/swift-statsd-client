@@ -36,7 +36,9 @@ final class TestServer: @unchecked Sendable {
     func connect() -> EventLoopFuture<Void> {
         let bootstrap = DatagramBootstrap(group: self.eventLoopGroup)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-            .channelInitializer { channel in channel.pipeline.addHandler(Aggregator(delegate: { self.store(address: $0, value: $1) })) }
+            .channelInitializer { channel in
+                channel.pipeline.addHandler(Aggregator(delegate: { self.store(address: $0, value: $1) }))
+            }
 
         return bootstrap.bind(host: self.host, port: self.port).map { _ in () }
     }
