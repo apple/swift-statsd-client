@@ -447,7 +447,7 @@ private final class Client: @unchecked Sendable {
         return bootstrap.bind(host: self.address.protocol == .inet6 ? "::" : "0.0.0.0", port: 0)
     }
 
-    private final class Encoder: ChannelOutboundHandler {
+    private final class Encoder: ChannelOutboundHandler, Sendable {
         public typealias OutboundIn = Metric
         public typealias OutboundOut = AddressedEnvelope<ByteBuffer>
 
