@@ -36,7 +36,7 @@ final class TestServer: @unchecked Sendable {
     func connect() -> EventLoopFuture<Void> {
         let bootstrap = DatagramBootstrap(group: self.eventLoopGroup)
             .channelOption(ChannelOptions.socket(SocketOptionLevel(SOL_SOCKET), SO_REUSEADDR), value: 1)
-            .channelInitializer { channel in channel.pipeline.addHandler(Aggregator(delegate: self.store)) }
+            .channelInitializer { channel in channel.pipeline.addHandler(Aggregator(delegate: { self.store(address: $0, value: $1) })) }
 
         return bootstrap.bind(host: self.host, port: self.port).map { _ in () }
     }
@@ -57,12 +57,12 @@ final class TestServer: @unchecked Sendable {
         }
     }
 
-    class Aggregator: ChannelInboundHandler {
+    final class Aggregator: ChannelInboundHandler, Sendable {
         typealias InboundIn = AddressedEnvelope<ByteBuffer>
 
-        let delegate: (SocketAddress, String) -> Void
+        let delegate: @Sendable (SocketAddress, String) -> Void
 
-        init(delegate: @escaping (SocketAddress, String) -> Void) {
+        init(delegate: @escaping @Sendable (SocketAddress, String) -> Void) {
             self.delegate = delegate
         }
 
