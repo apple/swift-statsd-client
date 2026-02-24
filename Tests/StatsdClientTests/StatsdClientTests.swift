@@ -24,7 +24,7 @@ import class NIOConcurrencyHelpers.Lock
 private let host = "127.0.0.1"
 private let port = 9999
 
-class StatsdClientTests: XCTestCase {
+final class StatsdClientTests: XCTestCase {
     private var statsdClient: StatsdClient!
 
     override func setUp() {
