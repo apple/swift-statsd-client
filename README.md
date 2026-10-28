@@ -1,16 +1,6 @@
-# Deprecation Notice:
+# ⚠️Deprecated ⚠️
 
-swift-statsd-client has not seen active development for a long time, and will be deprecated and will no longer be maintained. The package will receive critical bug and security fixes for 6-months and then archived. Please migrate to swift-metrics with an appropriate backend such as swift-otel, opentelemetry-swift or swift-prometheus as the replacement.
-
-# Reason:
-
-Since this package was introduced we have observed a shift in the ecosystem towards Prometheus and OpenTelemetry based solutions. Adoption and engagement around the swift-statsd-client package has remained relatively low. With all of this in mind, we’ve decided to focus our efforts on maintaining these other heavily used metrics backend.
-
-# Migration Guide:
-
-Visit the swift-metrics repository for documentation and setup instructions.
-
-Thank you to all of the contributors of swift-statsd-client.
+Swift StatsD Client is deprecated and no longer maintained. The package won't receive any critical bug and security fixes. Please migrate to another `swift-metrics` backend such as `swift-otel`, `opentelemetry-swift` or `swift-prometheus` as the replacement.
 
 # SwiftStatsDClient
 
