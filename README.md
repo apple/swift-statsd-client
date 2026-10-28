@@ -1,3 +1,7 @@
+# ⚠️Deprecated ⚠️
+
+Swift StatsD Client is deprecated and no longer maintained. The package won't receive any critical bug and security fixes. Please migrate to another `swift-metrics` backend such as `swift-otel`, `opentelemetry-swift` or `swift-prometheus` as the replacement.
+
 # SwiftStatsDClient
 
 a metrics backend for [swift-metrics](https://github.com/apple/swift-metrics) that uses the [statsd](https://github.com/b/statsd_spec) protocol, and can be used to integrate applications with observability solutions that support `statsd` including:
